@@ -1,0 +1,35 @@
+# --- Target / flash / partitions -------------------------------------------
+CONFIG_IDF_TARGET="esp32s3"
+# esptool default is 2MB; S3 modules are >=4MB. 4MB is safe for every common
+# S3 module (N4/N8/N16). If `idf.py flash` reports 8MB/16MB, bump this.
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# --- RTOS timing ------------------------------------------------------------
+# Default 100Hz => 10ms ticks: too coarse for the 16ms SHT31 conversion wait
+# and queue timeouts. 1000Hz makes pdMS_TO_TICKS exact at 1ms.
+CONFIG_FREERTOS_HZ=1000
+
+# --- Task watchdog (req. 8) -------------------------------------------------
+# WDT_EN/WDT_INIT default y (kept implicit). Default PANIC=n only logs;
+# a field device must reboot on a hung task.
+CONFIG_ESP_TASK_WDT_PANIC=y
+# 5s default is tight around blocking NVS commits + MQTT enqueue; 10s is safe.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+
+# --- Logging (req. 7) -------------------------------------------------------
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+
+# --- Stacks -----------------------------------------------------------------
+# app_main runs the whole init chain incl. NVS seeding and I2C probe.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+# Default 2304 is marginal: our WIFI/IP/APP_EVENT handlers run here and call
+# into mqtt start, cJSON-free paths and NVS.
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+
+# --- Bring-up escape hatches (v6: default warnings are ERRORS, GCC 15) ------
+# Uncomment ONLY if the first build trips on toolchain-new warnings, then fix
+# the code and re-comment before Phase-1 sign-off:
+# CONFIG_COMPILER_DISABLE_GCC15_WARNINGS=y
+# CONFIG_COMPILER_DISABLE_DEFAULT_ERRORS=y

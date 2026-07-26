@@ -1,0 +1,89 @@
+menu "Smart Home Node Configuration"
+
+    config SHC_WIFI_SSID
+        string "WiFi SSID (seeded to NVS on first boot)"
+        default "myssid"
+        help
+            Compiled-in default only. Seeded into NVS once (when cfg_ver is
+            absent); afterwards NVS is the source of truth. Re-seed with
+            `idf.py erase-flash`.
+
+    config SHC_WIFI_PASS
+        string "WiFi password"
+        default "mypassword"
+
+    config SHC_MQTT_URI
+        string "MQTT broker URI"
+        default "mqtt://192.168.1.10:1883"
+
+    config SHC_MQTT_USER
+        string "MQTT username"
+        default "smarthome"
+
+    config SHC_MQTT_PASS
+        string "MQTT password"
+        default "changeme"
+
+    config SHC_ROOM
+        string "Room slug"
+        default "phong-khach"
+        help
+            Lowercase slug used in the MQTT topic tree:
+            home/{room}/{node_id}/...
+
+    config SHC_RELAY1_GPIO
+        int "Relay 1 GPIO"
+        range 0 48
+        default 4
+
+    config SHC_RELAY2_GPIO
+        int "Relay 2 GPIO"
+        range 0 48
+        default 5
+
+    config SHC_RELAY1_NAME
+        string "Relay 1 name"
+        default "Den tran"
+
+    config SHC_RELAY2_NAME
+        string "Relay 2 name"
+        default "Den ban"
+
+    config SHC_RELAY_ACTIVE_HIGH
+        bool "Relays are active-high"
+        default y
+
+    choice SHC_POWERON_BEHAVIOR
+        prompt "Relay power-on behavior"
+        default SHC_POWERON_RESTORE
+
+        config SHC_POWERON_RESTORE
+            bool "Restore last state from NVS"
+        config SHC_POWERON_OFF
+            bool "Always off"
+        config SHC_POWERON_ON
+            bool "Always on"
+    endchoice
+
+    config SHC_BUTTON1_GPIO
+        int "Button 1 GPIO"
+        default 6
+
+    config SHC_BUTTON2_GPIO
+        int "Button 2 GPIO"
+        default 7
+
+    config SHC_I2C_SDA_GPIO
+        int "I2C SDA GPIO (SHT31)"
+        default 8
+
+    config SHC_I2C_SCL_GPIO
+        int "I2C SCL GPIO (SHT31)"
+        default 9
+
+    config SHC_SENSOR_INTERVAL_S
+        int "Sensor publish interval (seconds)"
+        range 5 3600
+        default 30
+
+endmenu
