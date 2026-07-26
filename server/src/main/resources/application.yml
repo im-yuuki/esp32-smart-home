@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smarthome-server
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smarthome}
+    username: ${DB_USER:smarthome}
+    password: ${DB_PASSWORD:smarthome}
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Flyway owns the schema
+    open-in-view: false
+
+smarthome:
+  mqtt:
+    uri: ${MQTT_URI:tcp://localhost:1883}
+    username: ${MQTT_USERNAME:server}
+    password: ${MQTT_PASSWORD:changeme}
+    client-id: ${MQTT_CLIENT_ID:server-core}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
