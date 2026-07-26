@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server:
+    name: server (Spring Boot 4.1, Java 25)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: server/pom.xml
+      # Unit tests are self-contained (no DB/broker needed): TopicParser + payload mapping.
+      - name: Build and test
+        run: mvn -B verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-jar
+          path: server/target/*.jar
+          retention-days: 14
+
+  webui:
+    name: webui (Vue 3 + Nuxt UI, Node 26)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+      - run: npm ci
+      # "build" = vite build + vue-tsc type-check (sequential; the Nuxt UI plugin
+      # generates auto-imports.d.ts/components.d.ts during the vite build)
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webui-dist
+          path: webui/dist/
+          retention-days: 14
+
+  firmware:
+    name: firmware (ESP-IDF v6.0.2, esp32s3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Managed components (espressif/mqtt, espressif/cjson) resolve online from
+      # components.espressif.com, pinned by version + hash in dependencies.lock.
+      - uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: esp32s3
+          path: firmware
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp32s3
+          path: |
+            firmware/build/smart_home_node.bin
+            firmware/build/bootloader/bootloader.bin
+            firmware/build/partition_table/partition-table.bin
+            firmware/build/flasher_args.json
+          retention-days: 14

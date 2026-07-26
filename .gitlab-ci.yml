@@ -1,0 +1,80 @@
+# CI for the smart-home monorepo: server (Java 25), webui (Node 26), firmware (ESP-IDF v6.0.2).
+# Jobs only run when their part changed (rules:changes), plus always on the default branch.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - build
+
+server:
+  stage: build
+  image: maven:3.9.11-eclipse-temurin-25
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  cache:
+    key:
+      files:
+        - server/pom.xml
+    paths:
+      - .m2/repository
+  script:
+    - cd server
+    # Unit tests are self-contained (no DB/broker needed): TopicParser + payload mapping.
+    - mvn -B verify
+  artifacts:
+    paths:
+      - server/target/*.jar
+    expire_in: 2 weeks
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [server/**/*]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+webui:
+  stage: build
+  image: node:26-alpine
+  cache:
+    key:
+      files:
+        - webui/package-lock.json
+    paths:
+      - webui/node_modules
+  script:
+    - cd webui
+    - npm ci
+    # "build" = vite build + vue-tsc type-check (sequential; the Nuxt UI plugin
+    # generates auto-imports.d.ts/components.d.ts during the vite build)
+    - npm run build
+  artifacts:
+    paths:
+      - webui/dist
+    expire_in: 2 weeks
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [webui/**/*]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+firmware:
+  stage: build
+  image: espressif/idf:v6.0.2
+  script:
+    - cd firmware
+    # Managed components (espressif/mqtt, espressif/cjson) resolve online from
+    # components.espressif.com, pinned by version + hash in dependencies.lock.
+    - idf.py set-target esp32s3
+    - idf.py build
+    - idf.py size
+  artifacts:
+    paths:
+      - firmware/build/smart_home_node.bin
+      - firmware/build/bootloader/bootloader.bin
+      - firmware/build/partition_table/partition-table.bin
+      - firmware/build/flasher_args.json
+    expire_in: 2 weeks
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes: [firmware/**/*]
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
