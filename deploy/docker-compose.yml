@@ -63,7 +63,7 @@ services:
   # dev-only build tool: `docker compose --profile tools run --rm mvn test`
   mvn:
     profiles: ["tools"]
-    image: maven:3.9.11-eclipse-temurin-21
+    image: maven:3.9.11-eclipse-temurin-25
     working_dir: /workspace
     volumes:
       - ../server:/workspace

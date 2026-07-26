@@ -4,7 +4,7 @@ The single server-side MQTT client of the system: subscribes `home/#`, persists
 discovery/status/state/telemetry to Postgres (Flyway-managed schema), publishes relay
 commands, and broadcasts normalized events to the web UI over STOMP/SockJS.
 
-Stack: Spring Boot **4.1.0** (Jackson 3 / `tools.jackson`), Java 21, Spring Integration
+Stack: Spring Boot **4.1.0** (Jackson 3 / `tools.jackson`), Java 25 (LTS), Spring Integration
 MQTT 7.1.0 + Paho v3 (MQTT 3.1.1), Hibernate ORM 7.4, Flyway, PostgreSQL 16.
 
 ## Docker-only dev loop (no host Java)
