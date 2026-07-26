@@ -1,0 +1,16 @@
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.iml
+
+# Secrets — never commit real env files
+.env
+
+# Build outputs (per-part .gitignore files add specifics)
+node_modules/
+dist/
+target/
+build/
