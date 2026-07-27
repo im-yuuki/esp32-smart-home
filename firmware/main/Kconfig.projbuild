@@ -24,6 +24,13 @@ menu "Smart Home Node Configuration"
         string "MQTT password"
         default "changeme"
 
+    config SHC_ADMIN_PASS
+        string "Portal admin password (seeded to NVS on first boot)"
+        default "defaultpasswd"
+        help
+            Login password for the recovery portal (user "admin"). The portal
+            UI shows a warning banner while this default is unchanged.
+
     config SHC_ROOM
         string "Room slug"
         default "phong-khach"

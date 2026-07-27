@@ -25,8 +25,26 @@ CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 # app_main runs the whole init chain incl. NVS seeding and I2C probe.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
 # Default 2304 is marginal: our WIFI/IP/APP_EVENT handlers run here and call
-# into mqtt start, cJSON-free paths and NVS.
-CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+# into mqtt start, cJSON-free paths and NVS. The portal start/stop path
+# (httpd_start, esp_wifi_set_mode, netif create/destroy) also runs in this
+# task -- 4096 was already a bump, the portal path needs more.
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=6144
+
+# --- Recovery portal --------------------------------------------------------
+# httpd needs max_open_sockets(4) + 3 internal; + DNS-hijack UDP + MQTT +
+# margin. Default 10 is exhausted; the captive_portal example ships 16.
+CONFIG_LWIP_MAX_SOCKETS=16
+
+# --- JSON parser recursion bound (attacker-supplied payloads) ---------------
+# cJSON's parser recurses once per nesting level (~64 bytes of stack each at
+# -Og); upstream's default of 1000 lets a few hundred bytes of "[[[[..." blow
+# the 8 KB portal httpd task stack (POST /api/login needs no session, so this
+# is reachable unauthenticated) or the 6 KB MQTT task stack (broker-supplied
+# relay/cmd payloads in mqtt_mgr). 16 is far above anything our wire format
+# uses -- the deepest structure we parse is two levels ({"wifi":{...}}).
+# portal.c ALSO pre-scans body depth at runtime: sdkconfig.defaults only seeds
+# a freshly generated sdkconfig, so it cannot be the only line of defense.
+CONFIG_CJSON_NESTING_LIMIT=16
 
 # --- Bring-up escape hatches (v6: default warnings are ERRORS, GCC 15) ------
 # Uncomment ONLY if the first build trips on toolchain-new warnings, then fix

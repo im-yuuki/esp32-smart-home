@@ -13,8 +13,10 @@
 #include "nvs_flash.h"
 
 #include "app_config.h"
+#include "boot_button.h"
 #include "button_handler.h"
 #include "mqtt_mgr.h"
+#include "portal.h"
 #include "relay_driver.h"
 #include "sensor_task.h"
 #include "wifi_manager.h"
@@ -51,10 +53,24 @@ void app_main(void)
         ESP_LOGE(TAG, "button_handler_init failed: %s (continuing)", esp_err_to_name(err));
     }
 
+    // 5b. BOOT button (GPIO0): hold 5 s to force the recovery portal
+    err = boot_button_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "boot_button_init failed: %s (continuing)", esp_err_to_name(err));
+    }
+
     // 6. Sensor (absent => warn + no task)
     err = sensor_task_start();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "sensor_task_start failed: %s (continuing)", esp_err_to_name(err));
+    }
+
+    // 6b. Portal (event handlers only; SoftAP/httpd/DNS start on demand).
+    // Must precede wifi_manager_start: the unprovisioned-boot
+    // PORTAL_START_REQ posted there needs the portal handler registered.
+    err = portal_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "portal_init failed: %s (continuing)", esp_err_to_name(err));
     }
 
     // 7. WiFi

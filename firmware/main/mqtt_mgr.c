@@ -16,6 +16,7 @@
 #include "app_config.h"
 #include "app_events.h"
 #include "discovery.h"
+#include "json_guard.h"
 #include "relay_driver.h"
 
 static const char *TAG = "mqtt";
@@ -57,6 +58,13 @@ static void handle_relay_set(int ch, const esp_mqtt_event_handle_t event)
         return;
     }
 
+    // Depth guard before cJSON, same reason as in the portal: the parser
+    // recurses per nesting level and this task has a 6 KB stack against a 2 KB
+    // receive buffer. Broker payloads are as untrusted as portal bodies.
+    if (!json_depth_ok_n(event->data, (size_t)event->data_len)) {
+        ESP_LOGW(TAG, "relay %d set: over-nested JSON dropped (%d bytes)", ch, event->data_len);
+        return;
+    }
     cJSON *root = cJSON_ParseWithLength(event->data, (size_t)event->data_len);
     if (root == NULL) {
         ESP_LOGW(TAG, "relay %d set: invalid JSON (%.*s)", ch, event->data_len, event->data);
@@ -87,6 +95,10 @@ static void handle_relay_set(int ch, const esp_mqtt_event_handle_t event)
 
 static void handle_cmd(const esp_mqtt_event_handle_t event)
 {
+    if (!json_depth_ok_n(event->data, (size_t)event->data_len)) {
+        ESP_LOGW(TAG, "cmd: over-nested JSON dropped (%d bytes)", event->data_len);
+        return;
+    }
     cJSON *root = cJSON_ParseWithLength(event->data, (size_t)event->data_len);
     if (root == NULL) {
         ESP_LOGW(TAG, "cmd: invalid JSON (%.*s)", event->data_len, event->data);
