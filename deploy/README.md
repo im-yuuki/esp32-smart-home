@@ -9,17 +9,13 @@ cd deploy
 cp .env.example .env        # then edit the passwords
 ```
 
-**Bootstrap the Mosquitto password file** (one-time; the broker refuses to start without it). Note the `chown` — the bootstrap shell runs as root but the broker drops to user `mosquitto`:
-
-```bash
-docker compose run --rm --entrypoint sh mosquitto -c 'touch /mosquitto/passwd/passwd && chmod 600 /mosquitto/passwd/passwd && mosquitto_passwd -b /mosquitto/passwd/passwd "$MQTT_SERVER_USERNAME" "$MQTT_SERVER_PASSWORD" && chown -R mosquitto:mosquitto /mosquitto/passwd'
-```
-
-Then:
+Start the stack:
 
 ```bash
 docker compose up -d
 ```
+
+The `mosquitto-init` service creates the password file before the broker starts. It also updates the server credential from `.env` on later starts without removing node users.
 
 The Web UI, API, WebSocket, and health endpoint share `HTTP_PORT` (port `80` by default):
 

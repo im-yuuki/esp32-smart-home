@@ -54,8 +54,9 @@ deploy/
 â”œâ”€ docker-compose.yml
 â”œâ”€ .env.example
 â”œâ”€ .gitignore                      # .env
-â”œâ”€ README.md                       # bootstrap + verification runbook
+â”œâ”€ README.md                       # setup + verification runbook
 â”œâ”€ mosquitto/
+â”‚  â”œâ”€ init-password.sh            # idempotent server credential initialization
 â”‚  â””â”€ mosquitto.conf
 â””â”€ nginx/
    â””â”€ default.conf                 # SPA + /api + /ws reverse proxy
@@ -326,13 +327,30 @@ services:
       interval: 5s
       retries: 10
 
+  mosquitto-init:
+    image: eclipse-mosquitto:2
+    user: root
+    environment:
+      MQTT_SERVER_USERNAME: ${MQTT_SERVER_USERNAME}
+      MQTT_SERVER_PASSWORD: ${MQTT_SERVER_PASSWORD}
+    volumes:
+      - ./mosquitto/init-password.sh:/usr/local/bin/init-password.sh:ro
+      - mosquitto-passwd:/mosquitto/passwd
+    entrypoint: [ "sh", "/usr/local/bin/init-password.sh" ]
+    restart: "no"
+
   mosquitto:
     image: eclipse-mosquitto:2
     ports: [ "1883:1883" ]                     # LAN-exposed, no TLS (Phase 1)
+    environment:
+      MQTT_SERVER_USERNAME: ${MQTT_SERVER_USERNAME}
+      MQTT_SERVER_PASSWORD: ${MQTT_SERVER_PASSWORD}
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-data:/mosquitto/data
       - mosquitto-passwd:/mosquitto/passwd     # named volume: dodges Windows bind-mount perm warnings, keeps secrets off the repo tree
+    depends_on:
+      mosquitto-init: { condition: service_completed_successfully }
 
   server:
     build: ../server
@@ -381,16 +399,9 @@ log_dest stdout
 ```
 (Mosquitto 2.x binds localhost-only with no config â€” the explicit `listener 1883` is what exposes it; `allow_anonymous false` must also be explicit once a listener is declared.)
 
-### 4.3 Password-file bootstrap (chicken-and-egg: broker exits if `password_file` is missing)
+### 4.3 Password-file initialization
 
-One-time init **before first `up`** (Git Bash; `$MQTT_SERVER_PASSWORD` from `.env`):
-
-```bash
-docker compose run --rm --entrypoint sh mosquitto -c \
-  "touch /mosquitto/passwd/passwd && chmod 600 /mosquitto/passwd/passwd && \
-   mosquitto_passwd -b /mosquitto/passwd/passwd server $MQTT_SERVER_PASSWORD"
-docker compose up -d
-```
+The `mosquitto-init` Compose service runs to successful completion before the broker. It creates the password file on a new volume or updates the server credential on an existing volume while preserving node users.
 
 Adding a **real** node user later (node_id known only after flashing â€” MAC-derived):
 
@@ -442,7 +453,7 @@ server {
 
 ## 5. Ordered implementation steps (each with a smoke test)
 
-1. **`deploy/` skeleton: postgres + mosquitto only** (compose, mosquitto.conf, .env/.env.example, passwd bootstrap). *Smoke:* in-container `mosquitto_sub`/`mosquitto_pub` round-trip with the `server` user; anonymous pub must be **refused**; `docker compose exec postgres psql -U smarthome -c '\l'`.
+1. **`deploy/` skeleton: postgres + mosquitto only** (compose, mosquitto.conf, .env/.env.example, automatic password initialization). *Smoke:* in-container `mosquitto_sub`/`mosquitto_pub` round-trip with the `server` user; anonymous pub must be **refused**; `docker compose exec postgres psql -U smarthome -c '\l'`.
 2. **Server skeleton**: pom.xml, Application class, application.yml, `V1__init.sql`, Dockerfile, .dockerignore; add `server` + `mvn` services to compose. *Smoke:* `docker compose up -d --build server` â†’ `wget`/curl `:8080/actuator/health` = UP; `psql -c '\d nodes'` shows Flyway-created tables + `flyway_schema_history`.
 3. **Entities + repositories + read-only REST** (`GET /nodes`, `GET /nodes/{id}`, ApiResponse, exception handler). *Smoke:* `curl /api/v1/nodes` â†’ `{"data":[],"error":null}`; unknown node â†’ 404 envelope. Also proves `ddl-auto: validate` agrees with V1 (catches INET/JSONB mapping mistakes at boot â€” decide the INET fallback here if needed).
 4. **MQTT inbound: discovery + status** (MqttConfig, TopicParser, MqttInboundHandler, NodeService upsert). *Smoke:* boot a real node, then `GET /nodes` shows it online with its capabilities; restart server â†’ retained replay repopulates.
@@ -486,7 +497,7 @@ Complete the E2E sequence from the Web UI with a real node and verify relay stat
 9. **Self-echo of `/set` and `/cmd`** under `home/#` â€” must be explicitly ignored in the router (Â§3.3).
 10. **Retained-replay ordering** not guaranteed across topics â€” unknown-node states are warn-and-dropped, self-healing via retain semantics (Â§3.3).
 11. **Startup race serverâ†”mosquitto** â€” SI adapter `recoveryInterval` retries cover it; `automaticReconnect` alone would not retry a failed *first* connect (Â§3.2).
-12. **Mosquitto 2 defaults** â€” explicit `listener 1883` + `allow_anonymous false`; broker exits if `password_file` missing â†’ bootstrap step before first `up`; passwd in a named volume avoids Windows bind-mount permission warnings; `SIGHUP` reloads users (Â§4.2â€“4.3).
+12. **Mosquitto 2 defaults** â€” explicit `listener 1883` + `allow_anonymous false`; `mosquitto-init` creates the required password file before broker startup; passwd in a named volume avoids Windows bind-mount permission warnings; `SIGHUP` reloads users (Â§4.2â€“4.3).
 13. **`21-jre-alpine` has no curl** â€” compose healthcheck uses busybox `wget` (Â§4.1).
 14. **springdoc 3.0.3** â€” compatible but not yet rebuilt against Boot 4.1; kept out of Phase 1 (Â§2).
 

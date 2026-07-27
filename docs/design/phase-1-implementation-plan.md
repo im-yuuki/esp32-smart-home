@@ -31,7 +31,7 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 ## Milestones (implementation order)
 
 - **M0 — Repo scaffold**: `git init`; remove empty `esp32/ esp32-webui/ server-webui/`; create `firmware/ server/ webui/ deploy/ docs/{design,adr}`; copy design docs; root README; 4 ADR stubs (IDF v6, Boot 4, Nuxt UI, sensor-optional); root `.gitignore`. Initial commit.
-- **M1 — deploy/ skeleton**: postgres:16 + eclipse-mosquitto:2 in compose, `mosquitto.conf`, `.env`/`.env.example`, password-file bootstrap. Smoke: authed pub/sub round-trip; anonymous refused.
+- **M1 — deploy/ skeleton**: postgres:16 + eclipse-mosquitto:2 in compose, `mosquitto.conf`, `.env`/`.env.example`, automatic password-file initialization. Smoke: authed pub/sub round-trip; anonymous refused.
 - **M2 — server/**: 8 increments (below), verified against MQTT traffic from real nodes.
 - **M3 — webui/**: mock-mode-first build (10 steps below), then integrate against the real stack; nginx same-origin prod wiring.
 - **M4 — firmware/** (parallelizable with M2/M3 once M1 is up): 9 increments ending in acceptance hardening. Needs board on COM4.
@@ -54,7 +54,7 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 - **REST `/api/v1`** per roadmap table; all responses in `ApiResponse<T>` envelope; `POST .../relays/{ch}/command` validates node+capability exist, publishes `{"state":...}` to `.../set`, returns **202 immediately** — never waits, never fakes state. History: raw rows, `from`/`to` ISO-8601 (defaults now−24h/now), asc, capped 10k rows; `bucket` accepted-and-ignored (Phase 1).
 - **WebSocket**: STOMP `/ws` + SockJS, simple broker `/topic`, `EventMessage(type,nodeId,channel,data,ts)` with `ts` = epoch **millis**; `StatePublisher` → `/topic/events`. **Cross-plan fix: configure broker heartbeats** — `enableSimpleBroker("/topic").setHeartbeatValue(new long[]{10000,10000}).setTaskScheduler(<a TaskScheduler bean>)` — the UI relies on 10s/10s heartbeats for dead-connection detection.
 - **Dockerfile**: `maven:3.9.11-eclipse-temurin-21` build (with `dependency:go-offline` cached layer) → `eclipse-temurin:21-jre-alpine`, non-root user; healthcheck uses busybox `wget` (no curl in alpine JRE).
-- **deploy/**: compose services `postgres` (healthcheck-gated), `mosquitto` (1883 LAN, conf + passwd in named volume — avoids Windows bind-mount permission issues), `server`, `webui` (build context **`../webui`** — plans referenced `../server-webui`, superseded by the layout decision), and a `tools`-profile `mvn` service (shared `.m2` volume) giving `docker compose --profile tools run --rm mvn test` with no host Java. `mosquitto.conf`: explicit `listener 1883` + `allow_anonymous false` + `password_file`. One-time passwd bootstrap via `docker compose run --rm --entrypoint sh mosquitto -c "touch … && mosquitto_passwd -b …"` (broker exits if the file is missing); add real node users later with `mosquitto_passwd` + `SIGHUP` reload. `deploy/nginx/default.conf` bind-mounted into the webui container is the **single** nginx config (webui's own copy dropped — one source of truth): SPA `try_files` fallback, `/api/` and `/ws` proxied to `server:8080` with upgrade headers + `proxy_read_timeout 3600s`.
+- **deploy/**: compose services `postgres` (healthcheck-gated), `mosquitto-init` (idempotently creates or updates the server credential), `mosquitto` (1883 LAN, conf + passwd in named volume — avoids Windows bind-mount permission issues), `server`, and `webui` (build context **`../webui`** — plans referenced `../server-webui`, superseded by the layout decision). `mosquitto.conf`: explicit `listener 1883` + `allow_anonymous false` + `password_file`; add real node users later with `mosquitto_passwd` + `SIGHUP` reload. `deploy/nginx/default.conf` bind-mounted into the webui container is the **single** nginx config (webui's own copy dropped — one source of truth): SPA `try_files` fallback, `/api/` and `/ws` proxied to `server:8080` with upgrade headers + `proxy_read_timeout 3600s`.
 **Backend implementation increments (each with smoke test in design doc):** ① deploy skeleton (=M1) → ② server skeleton + Flyway (health UP, tables created) → ③ entities/repos + read-only REST (validates JSONB/INET mapping at boot via `ddl-auto: validate`) → ④ MQTT inbound: discovery+status (real node boots → GET /nodes shows node) → ⑤ relay/sensor state persistence → ⑥ WebSocket events → ⑦ outbound gateway + command endpoint (202; lastState unchanged until the node reports state) → ⑧ telemetry endpoints.
 
 ## M3: Web UI (`webui/`) — summary
@@ -85,7 +85,7 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 
 ## Verification — GĐ1 acceptance criteria mapping
 
-Run after M5, from `deploy/`: `docker compose up -d` (clean machine path: only `.env` creation + passwd bootstrap precede it — both in README).
+Run after M5, from `deploy/`: `docker compose up -d` (only `.env` creation is required first; Compose initializes the password file).
 
 | Roadmap criterion | How verified |
 |---|---|
@@ -94,7 +94,7 @@ Run after M5, from `deploy/`: `docker compose up -d` (clean machine path: only `
 | Physical button works with WiFi unplugged; UI resyncs on reconnect | Kill AP/broker → press button → relay clicks immediately → restore network → retained `relay/{ch}/state` republished in connect sequence → UI shows correct state (also exercises UI resync-on-reconnect refetch). |
 | Unplug node → UI offline ≤90s; replug → relay states restored | LWT keepalive 30s ⇒ offline ≤45s → NODE_STATUS event dims card; power-on `restore` re-applies NVS states before WiFi. |
 | 24h temp/humidity chart | Attach an SHT31 (wire SDA 8, SCL 9), run the node long enough to populate telemetry, then verify the chart window and live appends. |
-| `docker compose up -d` builds whole server stack from clean machine | Fresh clone test: `.env` from example → passwd bootstrap → `up -d` → dashboard at `http://localhost/` (nginx same-origin SPA+/api+/ws). |
+| `docker compose up -d` builds whole server stack from clean machine | Fresh clone test: `.env` from example → `up -d` → dashboard at `http://localhost/` (nginx same-origin SPA+/api+/ws). |
 
 Cross-cutting behaviors also verified: 202-then-event command flow, mock-mode 5s revert + toast, WS reconnect indicator with growing backoff gaps, offline-node toggle disable, mobile 375px pass + real phone via LAN, `vue-tsc` clean, and unit tests `TopicParserTest`/`DiscoveryPayloadTest` green in CI.
 

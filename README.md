@@ -28,7 +28,6 @@ Each part has its own README with build/run instructions. Commits follow Convent
 ```
 cd deploy
 copy .env.example .env       # then edit passwords
-# one-time mosquitto password bootstrap — see deploy/README.md
 docker compose up -d
 ```
 

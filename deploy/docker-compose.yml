@@ -13,6 +13,20 @@ services:
       interval: 5s
       retries: 10
 
+  mosquitto-init:
+    image: eclipse-mosquitto:2
+    user: root
+    environment:
+      MQTT_SERVER_USERNAME: ${MQTT_SERVER_USERNAME}
+      MQTT_SERVER_PASSWORD: ${MQTT_SERVER_PASSWORD}
+    volumes:
+      - ./mosquitto/init-password.sh:/usr/local/bin/init-password.sh:ro
+      - mosquitto-passwd:/mosquitto/passwd
+    entrypoint: ["sh", "/usr/local/bin/init-password.sh"]
+    restart: "no"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
@@ -26,6 +40,11 @@ services:
       # named volume (not bind mount): keeps secrets out of the repo tree and
       # avoids Windows bind-mount permission warnings from mosquitto
       - mosquitto-passwd:/mosquitto/passwd
+    depends_on:
+      mosquitto-init:
+        condition: service_completed_successfully
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   server:
     build: ../server
@@ -47,6 +66,8 @@ services:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 10s
       retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   webui:
     build: ../webui
