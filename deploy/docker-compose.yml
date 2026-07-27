@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16
+    profiles: ["embedded-db"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -31,17 +32,16 @@ services:
   server:
     build: ../server
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${POSTGRES_DB}}
+      DB_USER: ${DB_USER:-${POSTGRES_USER}}
+      DB_PASSWORD: ${DB_PASSWORD:-${POSTGRES_PASSWORD}}
       MQTT_URI: tcp://mosquitto:1883
       MQTT_USERNAME: ${MQTT_SERVER_USERNAME}
       MQTT_PASSWORD: ${MQTT_SERVER_PASSWORD}
-    ports:
-      - "8080:8080" # direct API access for dev/verification
     depends_on:
       postgres:
         condition: service_healthy
+        required: false
       mosquitto:
         condition: service_started
     healthcheck:
@@ -56,23 +56,12 @@ services:
       # single source of truth for the SPA/proxy config; tweak without rebuild
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "${WEBUI_PORT:-80}:80"
+      - "${HTTP_PORT:-80}:80"
     depends_on:
-      - server
-
-  # dev-only build tool: `docker compose --profile tools run --rm mvn test`
-  mvn:
-    profiles: ["tools"]
-    image: maven:3.9.11-eclipse-temurin-25
-    working_dir: /workspace
-    volumes:
-      - ../server:/workspace
-      - m2cache:/root/.m2
-    entrypoint: ["mvn"]
-    command: ["test"]
+      server:
+        condition: service_healthy
 
 volumes:
   pgdata:
   mosquitto-data:
   mosquitto-passwd:
-  m2cache:

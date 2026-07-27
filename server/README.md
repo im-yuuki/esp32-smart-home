@@ -7,20 +7,18 @@ commands, and broadcasts normalized events to the web UI over STOMP/SockJS.
 Stack: Spring Boot **4.1.0** (Jackson 3 / `tools.jackson`), Java 25 (LTS), Spring Integration
 MQTT 7.1.0 + Paho v3 (MQTT 3.1.1), Hibernate ORM 7.4, Flyway, PostgreSQL 16.
 
-## Docker-only dev loop (no host Java)
+## Docker dev loop
 
 Everything runs through the compose stack in `../deploy` (run all commands from there):
 
 ```bash
-docker compose --profile tools run --rm mvn test        # unit tests (m2cache volume keeps repeat runs fast)
-docker compose --profile tools run --rm mvn verify      # full check
 docker compose up -d --build server                     # rebuild + restart backend
 docker compose logs -f server                           # watch logs
 ```
 
 Configuration is env-driven (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `MQTT_URI`,
 `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_CLIENT_ID`) — compose injects the values from
-`deploy/.env`. Health: `http://localhost:8080/actuator/health`.
+`deploy/.env`. Health: `http://localhost/actuator/health` (or the configured `HTTP_PORT`).
 
 ## REST surface (`/api/v1`, all responses in the `{"data":…,"error":…}` envelope)
 

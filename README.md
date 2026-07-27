@@ -17,7 +17,7 @@ Nodes never talk to the web UI directly. The backend is the only server-side MQT
 | `firmware/` | Node firmware | ESP-IDF v6.0.2, target `esp32s3` |
 | `server/` | Backend | Spring Boot 4.1, Java 25, Maven (built via Docker — no host JDK needed) |
 | `webui/` | Web UI | Vue 3 + Vite + TS + Pinia + Nuxt UI v4 + ECharts |
-| `deploy/` | Server-stack deployment | docker-compose (postgres:16, eclipse-mosquitto:2, server, webui/nginx) |
+| `deploy/` | Server-stack deployment | Docker Compose (optional postgres:16, eclipse-mosquitto:2, server, webui/nginx) |
 | `docs/design/` | Implementation-level design docs (authoritative detail) | |
 | `docs/adr/` | Architecture decision records | |
 
@@ -32,7 +32,7 @@ copy .env.example .env       # then edit passwords
 docker compose up -d
 ```
 
-Web UI: `http://localhost/` · API: `http://localhost:8080/api/v1` · MQTT: `1883`
+Web UI: `http://localhost/` · API: `http://localhost/api/v1` · MQTT: `1883`
 
 ## MQTT contract (invariant since Phase 1)
 

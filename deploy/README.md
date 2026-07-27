@@ -1,6 +1,6 @@
-# deploy/ — server stack (docker compose)
+# deploy/ - server stack (Docker Compose)
 
-Services: `postgres:16`, `eclipse-mosquitto:2`, `server` (Spring Boot, built from `../server`), `webui` (Vue build → nginx, built from `../webui`), plus a dev-only `mvn` tool service (`--profile tools`).
+Services: `eclipse-mosquitto:2`, `server` (Spring Boot, built from `../server`), and `webui` (Vue build served by nginx, built from `../webui`). An optional `postgres:16` service is available through the `embedded-db` profile.
 
 ## First-time setup
 
@@ -21,7 +21,26 @@ Then:
 docker compose up -d
 ```
 
-Web UI: `http://localhost/` (or `WEBUI_PORT`) · API: `http://localhost:8080/api/v1` · MQTT: `1883` (LAN, user/password, no TLS in Phase 1).
+The Web UI, API, WebSocket, and health endpoint share `HTTP_PORT` (port `80` by default):
+
+- Web UI: `http://localhost/`
+- API: `http://localhost/api/v1`
+- WebSocket: `http://localhost/ws`
+- Health: `http://localhost/actuator/health`
+- MQTT: port `1883` (LAN, user/password, no TLS in Phase 1)
+
+## External PostgreSQL
+
+To run without the bundled PostgreSQL container, edit `.env`:
+
+```dotenv
+COMPOSE_PROFILES=
+DB_URL=jdbc:postgresql://database.example.com:5432/smarthome
+DB_USER=smarthome
+DB_PASSWORD=change-me-external-db
+```
+
+Then run `docker compose up -d` normally. The database must be reachable from the `server` container. Flyway creates or updates the application schema when the server starts.
 
 ## Adding a real node's MQTT user
 
@@ -50,11 +69,11 @@ Watch the WebSocket events the UI receives (host Node.js):
 cd scripts && npm i && node ws-watch.mjs
 ```
 
-## Backend dev loop (no host Java needed)
+## Backend dev loop
 
 ```bash
-docker compose --profile tools run --rm mvn test     # unit tests (cached ~/.m2 volume)
 docker compose up -d --build server                  # rebuild + restart backend
+docker compose logs -f server                        # watch logs
 ```
 
 ## Notes / Phase 1 limitations
