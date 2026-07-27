@@ -57,15 +57,8 @@ deploy/
 â”œâ”€ README.md                       # bootstrap + verification runbook
 â”œâ”€ mosquitto/
 â”‚  â””â”€ mosquitto.conf
-â”œâ”€ nginx/
-â”‚  â””â”€ default.conf                 # SPA + /api + /ws reverse proxy
-â””â”€ scripts/                        # bind-mounted RO into mosquitto container at /scripts
-   â”œâ”€ fake-node-boot.sh            # retained status+discovery+relay states
-   â”œâ”€ fake-node-sensor.sh          # sensor publish (single or loop)
-   â”œâ”€ fake-node-relay.sh           # publish relay state (simulates node executing a command)
-   â”œâ”€ watch-node-commands.sh       # mosquitto_sub on .../set and .../cmd
-   â”œâ”€ ws-watch.mjs                 # STOMP watcher (host Node 26)
-   â””â”€ package.json                 # dep: @stomp/stompjs
+â””â”€ nginx/
+   â””â”€ default.conf                 # SPA + /api + /ws reverse proxy
 ```
 
 (`server-webui/Dockerfile` â€” node:26-alpine build â†’ nginx:alpine â€” belongs to the webui workstream; compose assumes it exists, sketch in Â§4.)
@@ -338,7 +331,6 @@ services:
     ports: [ "1883:1883" ]                     # LAN-exposed, no TLS (Phase 1)
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./scripts:/scripts:ro                  # fake-node scripts, exec'd in-container
       - mosquitto-data:/mosquitto/data
       - mosquitto-passwd:/mosquitto/passwd     # named volume: dodges Windows bind-mount perm warnings, keeps secrets off the repo tree
 
@@ -396,8 +388,7 @@ One-time init **before first `up`** (Git Bash; `$MQTT_SERVER_PASSWORD` from `.en
 ```bash
 docker compose run --rm --entrypoint sh mosquitto -c \
   "touch /mosquitto/passwd/passwd && chmod 600 /mosquitto/passwd/passwd && \
-   mosquitto_passwd -b /mosquitto/passwd/passwd server $MQTT_SERVER_PASSWORD && \
-   mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-aabbcc fakenodepw"
+   mosquitto_passwd -b /mosquitto/passwd/passwd server $MQTT_SERVER_PASSWORD"
 docker compose up -d
 ```
 
@@ -407,7 +398,7 @@ Adding a **real** node user later (node_id known only after flashing â€” MA
 docker compose exec mosquitto mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-XXXXXX <password>
 docker compose kill -s SIGHUP mosquitto     # live reload of password file, no restart
 ```
-Both commands go in `deploy/README.md` as the documented operator flow. No ACL in Phase 1 (per spec) â€” any authenticated user can pub/sub anything, which is also why the fake-node scripts may run under either user.
+Both commands go in `deploy/README.md` as the documented operator flow. No ACL in Phase 1 (per spec) â€” any authenticated user can pub/sub anything.
 
 ### 4.4 `.env.example` (real `.env` gitignored via `deploy/.gitignore`)
 
@@ -454,46 +445,17 @@ server {
 1. **`deploy/` skeleton: postgres + mosquitto only** (compose, mosquitto.conf, .env/.env.example, passwd bootstrap). *Smoke:* in-container `mosquitto_sub`/`mosquitto_pub` round-trip with the `server` user; anonymous pub must be **refused**; `docker compose exec postgres psql -U smarthome -c '\l'`.
 2. **Server skeleton**: pom.xml, Application class, application.yml, `V1__init.sql`, Dockerfile, .dockerignore; add `server` + `mvn` services to compose. *Smoke:* `docker compose up -d --build server` â†’ `wget`/curl `:8080/actuator/health` = UP; `psql -c '\d nodes'` shows Flyway-created tables + `flyway_schema_history`.
 3. **Entities + repositories + read-only REST** (`GET /nodes`, `GET /nodes/{id}`, ApiResponse, exception handler). *Smoke:* `curl /api/v1/nodes` â†’ `{"data":[],"error":null}`; unknown node â†’ 404 envelope. Also proves `ddl-auto: validate` agrees with V1 (catches INET/JSONB mapping mistakes at boot â€” decide the INET fallback here if needed).
-4. **MQTT inbound: discovery + status** (MqttConfig, TopicParser, MqttInboundHandler, NodeService upsert). *Smoke:* run `fake-node-boot.sh` (Â§6), then `GET /nodes` shows esp32s3-aabbcc online with 3 capabilities; re-run with a modified discovery (rename channel 2) â†’ row updated not duplicated; restart server â†’ retained replay repopulates.
+4. **MQTT inbound: discovery + status** (MqttConfig, TopicParser, MqttInboundHandler, NodeService upsert). *Smoke:* boot a real node, then `GET /nodes` shows it online with its capabilities; restart server â†’ retained replay repopulates.
 5. **Relay state + sensor persistence.** *Smoke:* publish relay/sensor states; `GET /nodes` shows `lastState`; `psql -c 'select * from sensor_readings'` shows a row.
-6. **WebSocket: WebSocketConfig + StatePublisher + wiring into handler.** *Smoke:* `ws-watch.mjs` running, publish sensor state â†’ `SENSOR_STATE` event printed.
-7. **Outbound: MqttGateway + POST command endpoint.** *Smoke:* `watch-node-commands.sh` in one terminal, POST command â†’ `{"state":"ON"}` arrives on `.../relay/1/set`; verify `GET /nodes` `lastState` did **not** change (state-topic-is-truth honored) until fake node replies.
+6. **WebSocket: WebSocketConfig + StatePublisher + wiring into handler.** *Smoke:* publish sensor state from a real node and verify the UI receives a `SENSOR_STATE` event.
+7. **Outbound: MqttGateway + POST command endpoint.** *Smoke:* POST command and verify `GET /nodes` `lastState` does **not** change (state-topic-is-truth honored) until the node reports its state.
 8. **Telemetry endpoints** latest + history. *Smoke:* curl both, with and without `from`/`to`.
-9. **webui + nginx same-origin wiring** (compose service + default.conf; SPA build from webui workstream). *Smoke:* `http://localhost/` loads, `http://localhost/api/v1/nodes` proxies, ws-watch pointed at `ws://localhost/ws/websocket` connects.
-10. **Full E2E run** (Â§6 script order) + `deploy/README.md` runbook + Conventional Commits throughout (`feat(server): ...`, `feat(deploy): ...`).
+9. **webui + nginx same-origin wiring** (compose service + default.conf; SPA build from webui workstream). *Smoke:* `http://localhost/` loads and `http://localhost/api/v1/nodes` proxies.
+10. **Full E2E run with real hardware** + `deploy/README.md` runbook + Conventional Commits throughout (`feat(server): ...`, `feat(deploy): ...`).
 
-## 6. Verification runbook (no hardware, no host Java)
+## 6. Verification runbook
 
-Fake node: `esp32s3-aabbcc`, room `phong-khach`. All MQTT commands execute **inside** the mosquitto container via the bind-mounted scripts â€” this sidesteps PowerShell 5.1's notorious mangling of embedded JSON quotes entirely. Run the `docker compose ...` lines from Git Bash or PowerShell; the JSON lives in the scripts.
-
-`scripts/fake-node-boot.sh` (`docker compose exec mosquitto sh /scripts/fake-node-boot.sh`):
-
-```sh
-#!/bin/sh
-U="-u server -P ${MQTT_SERVER_PASSWORD:-change-me-mqtt}"
-B="home/phong-khach/esp32s3-aabbcc"
-mosquitto_pub $U -t "$B/status" -m online -q 1 -r
-mosquitto_pub $U -t "$B/discovery" -q 1 -r -m '{"node_id":"esp32s3-aabbcc","room":"phong-khach","fw_version":"1.0.0","ip":"192.168.1.51","capabilities":[{"type":"relay","channel":1,"name":"Den tran"},{"type":"relay","channel":2,"name":"Den ban"},{"type":"sensor","channel":1,"kind":"temperature_humidity","model":"SHT31","interval_s":30}]}'
-mosquitto_pub $U -t "$B/relay/1/state" -q 1 -r -m '{"state":"OFF","source":"boot"}'
-mosquitto_pub $U -t "$B/relay/2/state" -q 1 -r -m '{"state":"OFF","source":"boot"}'
-```
-
-`scripts/fake-node-sensor.sh` â€” one reading (or `while true; do ...; sleep 30; done` loop mode via arg):
-```sh
-mosquitto_pub $U -t "$B/sensor/state" -q 0 -m "{\"temperature\":28.5,\"humidity\":65.2,\"ts\":$(date +%s)}"
-```
-
-`scripts/fake-node-relay.sh ON 1` â€” simulates the node *executing* a command:
-```sh
-mosquitto_pub $U -t "$B/relay/${2:-1}/state" -q 1 -r -m "{\"state\":\"${1:-ON}\",\"source\":\"mqtt\"}"
-```
-
-`scripts/watch-node-commands.sh` â€” see server-issued commands:
-```sh
-mosquitto_sub $U -v -t "home/phong-khach/esp32s3-aabbcc/relay/+/set" -t "home/phong-khach/esp32s3-aabbcc/cmd"
-```
-
-Simulating death-by-LWT (retained offline): `mosquitto_pub $U -t "$B/status" -m offline -q 1 -r`.
+Use a provisioned ESP32-S3 node for MQTT, relay, sensor, offline, and WebSocket verification.
 
 **REST checks** (Git Bash; PowerShell users: `curl.exe`, or `Invoke-RestMethod` for the POST to avoid quote mangling):
 
@@ -509,21 +471,7 @@ curl "http://localhost:8080/api/v1/nodes/esp32s3-aabbcc/sensors/history?from=202
 Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/v1/nodes/esp32s3-aabbcc/relays/1/command -ContentType 'application/json' -Body '{"state":"ON"}'
 ```
 
-**Watching `/topic/events`** â€” host Node 26 (native `WebSocket`, so `@stomp/stompjs` works without shims; raw-WebSocket SockJS transport lives at `{endpoint}/websocket`). `scripts/ws-watch.mjs`, after `npm i` in `deploy/scripts/`:
-
-```js
-import { Client } from '@stomp/stompjs';
-const url = process.argv[2] ?? 'ws://localhost:8080/ws/websocket';
-const c = new Client({
-  brokerURL: url,
-  onConnect: () => { console.log('connected', url);
-    c.subscribe('/topic/events', m => console.log(new Date().toISOString(), m.body)); },
-  onStompError: f => console.error('STOMP error', f.headers, f.body),
-});
-c.activate();
-```
-
-**Full E2E sequence:** `fake-node-boot.sh` â†’ `GET /nodes` (online, 3 caps) â†’ start `ws-watch.mjs` + `watch-node-commands.sh` â†’ `POST .../relays/1/command {"state":"ON"}` â†’ 202 + command visible on `/set` sub + **no** state change yet â†’ `fake-node-relay.sh ON 1` â†’ `RELAY_STATE` event on WS + `lastState` updated in `GET /nodes` â†’ `fake-node-sensor.sh` â†’ `SENSOR_STATE` event + `sensors/latest` returns it â†’ publish retained `offline` â†’ `NODE_STATUS` event + `online:false`. That sequence exercises every roadmap invariant including "server never infers state from sent commands".
+Complete the E2E sequence from the Web UI with a real node and verify relay state, sensor telemetry, WebSocket updates, and offline detection.
 
 ## 7. Spring Boot 4 risks/gotchas (recap, inline refs above)
 
@@ -539,9 +487,8 @@ c.activate();
 10. **Retained-replay ordering** not guaranteed across topics â€” unknown-node states are warn-and-dropped, self-healing via retain semantics (Â§3.3).
 11. **Startup race serverâ†”mosquitto** â€” SI adapter `recoveryInterval` retries cover it; `automaticReconnect` alone would not retry a failed *first* connect (Â§3.2).
 12. **Mosquitto 2 defaults** â€” explicit `listener 1883` + `allow_anonymous false`; broker exits if `password_file` missing â†’ bootstrap step before first `up`; passwd in a named volume avoids Windows bind-mount permission warnings; `SIGHUP` reloads users (Â§4.2â€“4.3).
-13. **Windows shell quoting** â€” JSON never passes through PowerShell 5.1 argv: scripts-in-container for MQTT, Git Bash or `Invoke-RestMethod` for curl (Â§6).
-14. **`21-jre-alpine` has no curl** â€” compose healthcheck uses busybox `wget` (Â§4.1).
-15. **springdoc 3.0.3** â€” compatible but not yet rebuilt against Boot 4.1; kept out of Phase 1 (Â§2).
+13. **`21-jre-alpine` has no curl** â€” compose healthcheck uses busybox `wget` (Â§4.1).
+14. **springdoc 3.0.3** â€” compatible but not yet rebuilt against Boot 4.1; kept out of Phase 1 (Â§2).
 
 ### Critical Files for Implementation
 - C:\Users\Izuki\Projects\SmartHomeController\server\pom.xml

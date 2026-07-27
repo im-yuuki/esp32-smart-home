@@ -1,8 +1,0 @@
-{
-  "name": "deploy-scripts",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@stomp/stompjs": "^7.1.1"
-  }
-}

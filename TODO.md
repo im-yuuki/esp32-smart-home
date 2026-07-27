@@ -51,7 +51,6 @@
 - [x] Docker Compose cho PostgreSQL, Mosquitto, backend và web UI/nginx.
 - [x] Nginx phục vụ SPA và reverse proxy cùng origin cho `/api` và `/ws`.
 - [x] Mosquitto dùng username/password, persistence và không cho phép anonymous.
-- [x] Có script fake node để mô phỏng boot, telemetry, relay, offline và theo dõi WebSocket.
 - [x] Có hướng dẫn build/run riêng cho firmware, backend, web UI và deployment.
 - [x] Có pipeline GitHub Actions và GitLab CI để build/test backend, web UI và firmware.
 
@@ -99,4 +98,4 @@
 - [ ] Hệ thống hiện chỉ phục vụ LAN và chưa có đăng nhập người dùng.
 - [ ] MQTT có mật khẩu nhưng chưa có TLS và ACL theo node.
 - [ ] Thứ tự replay retained message giữa các topic không được MQTT đảm bảo; backend hiện bỏ qua state của node chưa discovery và chờ lần replay/reconnect tiếp theo.
-- [ ] Dữ liệu mock và fake-node script chỉ xác minh luồng phần mềm, không thay thế kiểm thử với thiết bị thật.
+- [ ] Dữ liệu mock chỉ xác minh luồng giao diện, không thay thế kiểm thử với thiết bị thật.

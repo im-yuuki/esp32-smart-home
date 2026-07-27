@@ -12,7 +12,7 @@ cp .env.example .env        # then edit the passwords
 **Bootstrap the Mosquitto password file** (one-time; the broker refuses to start without it). Note the `chown` — the bootstrap shell runs as root but the broker drops to user `mosquitto`:
 
 ```bash
-docker compose run --rm --entrypoint sh mosquitto -c 'touch /mosquitto/passwd/passwd && chmod 600 /mosquitto/passwd/passwd && mosquitto_passwd -b /mosquitto/passwd/passwd "$MQTT_SERVER_USERNAME" "$MQTT_SERVER_PASSWORD" && mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-aabbcc fakenodepw && chown -R mosquitto:mosquitto /mosquitto/passwd'
+docker compose run --rm --entrypoint sh mosquitto -c 'touch /mosquitto/passwd/passwd && chmod 600 /mosquitto/passwd/passwd && mosquitto_passwd -b /mosquitto/passwd/passwd "$MQTT_SERVER_USERNAME" "$MQTT_SERVER_PASSWORD" && chown -R mosquitto:mosquitto /mosquitto/passwd'
 ```
 
 Then:
@@ -49,24 +49,6 @@ After flashing a node you'll know its MAC-derived id (`esp32s3-xxxxxx`):
 ```bash
 docker compose exec mosquitto mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-xxxxxx <password>
 docker compose kill -s SIGHUP mosquitto     # live-reload users, no restart
-```
-
-## Fake node (test without hardware)
-
-Scripts are bind-mounted read-only into the mosquitto container; JSON never passes through Windows shell quoting. Fake node = `esp32s3-aabbcc`, room `phong-khach`.
-
-```bash
-docker compose exec mosquitto sh /scripts/fake-node-boot.sh      # retained status+discovery+relay states
-docker compose exec mosquitto sh /scripts/fake-node-sensor.sh    # one reading ("loop" arg = every 30s)
-docker compose exec mosquitto sh /scripts/fake-node-relay.sh ON 1  # node "executes" a command
-docker compose exec mosquitto sh /scripts/watch-node-commands.sh # watch .../set and .../cmd (Ctrl-C stops)
-docker compose exec mosquitto sh /scripts/node-offline.sh        # simulate LWT (retained offline)
-```
-
-Watch the WebSocket events the UI receives (host Node.js):
-
-```bash
-cd scripts && npm i && node ws-watch.mjs
 ```
 
 ## Backend dev loop

@@ -73,5 +73,4 @@ the `server` container — that file is the single deployment source of truth.
 ```sh
 cd ../deploy && docker compose up -d        # postgres + mosquitto + server
 cd ../webui && npm run dev                  # proxies to localhost:8080
-docker compose exec mosquitto sh /scripts/fake-node-boot.sh   # seed a fake node
 ```
