@@ -1,8 +1,8 @@
 // esp-mqtt wrapper: LWT, connect sequence, enqueue-based publishing.
 //
 // Module is named mqtt_mgr (NOT mqtt_client): the managed component's public
-// header is literally mqtt_client.h and main uses INCLUDE_DIRS "." -- a local
-// mqtt_client.h would shadow the component header for every include.
+// header is literally mqtt_client.h. A local wrapper with that name could
+// shadow the managed component header through the component include paths.
 #pragma once
 
 #include <stdbool.h>

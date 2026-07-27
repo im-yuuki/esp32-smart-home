@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f3ee">
+<title>Thiết lập Smart Home Node</title>
+<!-- Single-file portal UI: no external assets (captive mini-browsers block
+     outside fetches), vanilla JS, cookie session handled by the browser. -->
+<style>
+:root{--canvas:#f5f3ee;--surface:#fff;--ink:#22211f;--muted:#77736b;--line:#e4e1da;--soft:#faf9f6;--green-bg:#edf3ec;--green:#346538;--yellow-bg:#fbf3db;--yellow:#7a5706;--red-bg:#fdebec;--red:#9f2f2d}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--canvas);color:var(--ink);font-family:"Avenir Next","Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input{font:inherit}
+button{min-height:42px;padding:0 16px;border:1px solid var(--ink);border-radius:6px;background:var(--ink);color:#fff;font-weight:600;cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease}
+button:hover{background:#3a3834;border-color:#3a3834}
+button:active{transform:scale(.98)}
+button:disabled{background:#d8d5cf;border-color:#d8d5cf;color:#8b8780;cursor:not-allowed;transform:none}
+button.secondary{background:var(--surface);border-color:var(--line);color:var(--ink)}
+button.secondary:hover{background:var(--soft);border-color:#c9c5bc}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button.ghost:hover{background:var(--soft);border-color:var(--line);color:var(--ink)}
+button.compact{min-height:36px;padding:0 12px;font-size:13px}
+button.full{width:100%}
+.page{width:min(100%,900px);margin:0 auto;padding:46px 24px 72px}
+.masthead{display:flex;align-items:center;gap:14px;margin-bottom:34px}
+.brandmark{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--ink);border-radius:8px;background:var(--surface);font-family:"SFMono-Regular",Consolas,monospace;font-size:12px;font-weight:700;letter-spacing:.06em}
+.eyebrow{display:block;margin-bottom:4px;color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+h1,h2,h3,p{margin-top:0}
+h1{margin-bottom:2px;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-size:30px;font-weight:500;letter-spacing:-.035em;line-height:1.05}
+h2{margin-bottom:0;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-size:25px;font-weight:500;letter-spacing:-.025em;line-height:1.15}
+h3{margin-bottom:0;font-size:16px;font-weight:650;letter-spacing:-.01em}
+.subtitle,.card-note{margin-bottom:0;color:var(--muted)}
+.subtitle{font-size:13px}
+.card-note{font-size:13px;line-height:1.5}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px}
+.auth-card{width:min(100%,430px);padding:30px}
+.auth-card h2{margin-bottom:8px;font-size:32px}
+.auth-card .card-note{margin-bottom:24px}
+.field{display:block;margin-top:16px}
+.field-label{display:block;margin-bottom:7px;color:#57534d;font-size:12px;font-weight:700;letter-spacing:.025em}
+input[type=text],input[type=password]{width:100%;height:44px;padding:0 12px;border:1px solid #d8d5cd;border-radius:6px;outline:none;background:#fbfaf8;color:var(--ink);font-size:15px;transition:border-color .15s ease,box-shadow .15s ease}
+input::placeholder{color:#aaa69f}
+input:focus{border-color:#77736b;box-shadow:0 0 0 3px rgba(34,33,31,.07);background:#fff}
+.auth-card button{margin-top:22px}
+.inline-message{min-height:22px;margin-top:12px;color:var(--red);font-size:13px}
+.app-shell{display:grid;gap:24px}
+.warn{padding:14px 16px;border:1px solid #ead9aa;border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font-size:13px}
+.warn button{margin-top:12px}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,.65fr);gap:16px}
+.config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.node-line{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.node-id{display:block;font-family:"SFMono-Regular",Consolas,monospace;font-size:15px;font-weight:700;word-break:break-all}
+.firmware{display:block;margin-top:3px;color:var(--muted);font-size:12px}
+.metrics{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.metric{min-width:0;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.metric-label{display:block;margin-bottom:7px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.metric strong{display:block;overflow:hidden;font-size:14px;font-weight:650;text-overflow:ellipsis;white-space:nowrap}
+.metric small{display:block;overflow:hidden;margin-top:2px;color:var(--muted);font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.state{display:inline-flex;align-items:center;gap:7px;padding:4px 9px;border-radius:999px;background:var(--green-bg);color:var(--green);font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+.state.offline{background:#eeece8;color:#716d66}
+.state:before{width:6px;height:6px;border-radius:50%;background:currentColor;content:""}
+.relay-list{display:grid;gap:0}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}
+.row:first-child{padding-top:0}
+.row:last-child{border-bottom:0}
+.relay-name{overflow:hidden;font-weight:600;text-overflow:ellipsis;white-space:nowrap}
+.badge{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.badge.on{background:var(--green-bg);color:var(--green)}
+.badge.off{background:#eeece8;color:#716d66}
+.section-intro{display:flex;align-items:end;justify-content:space-between;gap:28px;margin:18px 0 2px}
+.section-intro .card-note{max-width:330px;text-align:right}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.field-grid .wide{grid-column:span 2}
+.scan-results{max-height:176px;margin:0 0 14px;overflow:auto;border-top:1px solid var(--line)}
+.ap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s ease}
+.ap:hover{background:var(--soft)}
+.ap-main{min-width:0}
+.ap strong{display:block;overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}
+.ap small,.signal{color:var(--muted);font-size:11px}
+.signal{font-family:"SFMono-Regular",Consolas,monospace;white-space:nowrap}
+.segment{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.radio-option{position:relative;cursor:pointer}
+.radio-option input{position:absolute;opacity:0;pointer-events:none}
+.radio-option span{display:block;padding:8px;border-radius:5px;color:var(--muted);font-size:13px;font-weight:650;text-align:center}
+.radio-option input:checked+span{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+#staticbox{margin-top:8px}
+.admin-actions{display:flex;gap:8px;margin-top:18px}
+.prefill-error{grid-column:span 2}
+.save-panel{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 22px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.save-panel h3{margin-bottom:4px}
+.save-panel button{min-width:180px}
+#msg{min-height:24px;margin:-12px 2px 0;color:var(--yellow);font-size:13px}
+.footer{padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;text-align:center}
+@media(max-width:680px){.page{padding:28px 16px 50px}.masthead{margin-bottom:26px}.dashboard-grid,.config-grid{grid-template-columns:1fr}.prefill-error{grid-column:auto}.card{padding:20px}.metrics{grid-template-columns:1fr 1fr}.metric-wide{grid-column:span 2}.section-intro{display:block}.section-intro .card-note{margin-top:7px;text-align:left}.save-panel{align-items:stretch;flex-direction:column}.save-panel button{width:100%}}
+@media(max-width:420px){.page{padding-right:12px;padding-left:12px}.auth-card{padding:24px 20px}.field-grid{grid-template-columns:1fr}.field-grid .wide{grid-column:auto}.metrics{grid-template-columns:1fr}.metric-wide{grid-column:auto}.row{grid-template-columns:minmax(0,1fr) auto}.row button{grid-column:span 2;width:100%}.admin-actions{align-items:stretch;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){button,input,.ap{transition:none}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="brandmark" aria-hidden="true">SH</div>
+    <div>
+      <span class="eyebrow">Cổng cấu hình cục bộ</span>
+      <h1>Smart Home Node</h1>
+      <p class="subtitle">ESP32-S3 &middot; Thiết lập và khôi phục thiết bị</p>
+    </div>
+  </header>
+
+  <section id="login" class="card auth-card">
+    <span class="eyebrow">Truy cập thiết bị</span>
+    <h2>Đăng nhập</h2>
+    <p class="card-note">Kết nối với Wi-Fi của node và dùng tài khoản quản trị để tiếp tục.</p>
+    <label class="field" for="user"><span class="field-label">Tên đăng nhập</span><input type="text" id="user" value="admin" autocomplete="username"></label>
+    <label class="field" for="pass"><span class="field-label">Mật khẩu</span><input type="password" id="pass" autocomplete="current-password"></label>
+    <button class="full" type="button" onclick="login()">Đăng nhập</button>
+    <div id="lmsg" class="inline-message" role="status" aria-live="polite"></div>
+  </section>
+
+  <div id="app" class="app-shell" hidden>
+    <div id="warnbar" class="warn" hidden><strong>Đang dùng mật khẩu mặc định.</strong> Hãy đổi mật khẩu quản trị ở mục Bảo mật bên dưới.</div>
+
+    <div class="dashboard-grid">
+      <section class="card status-card">
+        <div class="card-head"><div><span class="eyebrow">Tổng quan</span><h2>Trạng thái node</h2></div></div>
+        <div id="status">Đang đọc trạng thái&hellip;</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div><span class="eyebrow">Điều khiển cục bộ</span><h2>Relay</h2></div></div>
+        <div id="relays" class="relay-list"></div>
+        <p class="card-note">Thao tác có hiệu lực ngay cả khi Wi-Fi hoặc MQTT đang mất kết nối.</p>
+      </section>
+    </div>
+
+    <div class="section-intro">
+      <div><span class="eyebrow">Cấu hình</span><h2>Kết nối thiết bị</h2></div>
+      <p class="card-note">Các thay đổi được ghi vào bộ nhớ node sau khi lưu và khởi động lại.</p>
+    </div>
+
+    <div class="config-grid">
+      <section class="card">
+        <div class="card-head">
+          <div><span class="eyebrow">Mạng chính và dự phòng</span><h3>Wi-Fi</h3></div>
+          <button class="secondary compact" id="scanbtn" type="button" onclick="doScan()">Quét mạng</button>
+        </div>
+        <div id="aplist" class="scan-results"></div>
+        <label class="field" for="ssid"><span class="field-label">SSID chính</span><input type="text" id="ssid" autocomplete="off"></label>
+        <label class="field" for="wpass"><span class="field-label">Mật khẩu Wi-Fi</span><input type="password" id="wpass" placeholder="Để trống nếu không thay đổi" autocomplete="new-password"></label>
+        <label class="field" for="bssid"><span class="field-label">SSID dự phòng</span><input type="text" id="bssid" placeholder="Không bắt buộc; để trống để xóa" autocomplete="off"></label>
+        <label class="field" for="bpass"><span class="field-label">Mật khẩu dự phòng</span><input type="password" id="bpass" placeholder="Để trống nếu không thay đổi" autocomplete="new-password"></label>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div><span class="eyebrow">Địa chỉ trong mạng LAN</span><h3>Chế độ IP</h3></div></div>
+        <div class="segment" role="radiogroup" aria-label="Chế độ cấp địa chỉ IP">
+          <label class="radio-option"><input type="radio" name="ipmode" value="dhcp" checked onchange="ipMode()"><span>Tự động (DHCP)</span></label>
+          <label class="radio-option"><input type="radio" name="ipmode" value="static" onchange="ipMode()"><span>IP tĩnh</span></label>
+        </div>
+        <div id="staticbox" class="field-grid" hidden>
+          <label class="field" for="sip"><span class="field-label">Địa chỉ IP</span><input type="text" id="sip" inputmode="decimal"></label>
+          <label class="field" for="snm"><span class="field-label">Netmask</span><input type="text" id="snm" inputmode="decimal"></label>
+          <label class="field" for="sgw"><span class="field-label">Gateway</span><input type="text" id="sgw" inputmode="decimal"></label>
+          <label class="field" for="sdns"><span class="field-label">DNS</span><input type="text" id="sdns" placeholder="Trống = gateway" inputmode="decimal"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div><span class="eyebrow">Máy chủ trung tâm</span><h3>MQTT</h3></div></div>
+        <label class="field" for="muri"><span class="field-label">Broker URI</span><input type="text" id="muri" placeholder="mqtt://192.168.1.10:1883" autocomplete="off"></label>
+        <div class="field-grid">
+          <label class="field" for="muser"><span class="field-label">Tên đăng nhập</span><input type="text" id="muser" autocomplete="off"></label>
+          <label class="field" for="mpass"><span class="field-label">Mật khẩu</span><input type="password" id="mpass" placeholder="Không thay đổi" autocomplete="new-password"></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div><span class="eyebrow">Phiên đăng nhập</span><h3>Bảo mật</h3></div></div>
+        <p class="card-note">Đổi mật khẩu mặc định trước khi đưa node vào sử dụng.</p>
+        <label class="field" for="npass"><span class="field-label">Mật khẩu quản trị mới</span><input type="password" id="npass" autocomplete="new-password"></label>
+        <div class="admin-actions">
+          <button type="button" onclick="setPass()">Đổi mật khẩu</button>
+          <button class="ghost" type="button" onclick="logout()">Đăng xuất</button>
+        </div>
+      </section>
+
+      <div id="prefillerr" class="warn prefill-error" hidden><strong>Không đọc được cấu hình hiện tại.</strong>
+        Chức năng lưu đã bị khóa để tránh ghi đè Wi-Fi dự phòng hoặc chế độ IP bằng biểu mẫu trống.
+        <br><button class="secondary compact" type="button" onclick="prefill()">Thử lại</button></div>
+    </div>
+
+    <section class="save-panel">
+      <div><h3>Lưu cấu hình</h3><p class="card-note">Node sẽ khởi động lại và đóng mạng Wi-Fi thiết lập.</p></div>
+      <button id="savebtn" type="button" onclick="saveAll()" disabled>Lưu &amp; khởi động lại</button>
+    </section>
+    <div id="msg" role="status" aria-live="polite"></div>
+    <footer class="footer">Cấu hình được truyền trực tiếp đến node trong mạng cục bộ.</footer>
+  </div>
+</main>
+
+<script>
+var timer=null;
+/* Save is armed only by a successful prefill: the form is a full-state POST
+   (empty Backup SSID means "clear it", ip.mode is always sent), so saving a
+   form that never loaded would silently drop the backup AP and revert a static
+   IP to DHCP. */
+var prefilled=false;
+/* One entry per error code portal.c can send back (grep send_err_json). Any
+   code missing here still renders raw via emsg(), which is ugly but never
+   blank. */
+var ERRS={bad_subnet:'Cấu hình IP tĩnh không hợp lệ. Kiểm tra netmask, gateway, địa chỉ mạng và broadcast',
+          wrong_subnet:'Địa chỉ này không cùng mạng với Wi-Fi hiện tại. Hãy dùng đúng subnet hoặc kết nối node với mạng mới trước',
+          bad_ip:'Một trường IP tĩnh không phải địa chỉ hợp lệ',
+          too_long:'Một trường dài hơn giới hạn node cho phép',
+          bad_password:'Mật khẩu phải có từ 1 đến 64 ký tự',
+          bad_credentials:'Tên đăng nhập hoặc mật khẩu không đúng',
+          bad_request:'Node từ chối yêu cầu không hợp lệ',
+          rate_limited:'Có quá nhiều lần thử. Hãy chờ một giây rồi thử lại',
+          unauthorized:'Phiên đã hết hạn. Hãy đăng nhập lại',
+          ap_only:'Chỉ có thể truy cập qua Wi-Fi SmartHome-Setup',
+          too_large:'Yêu cầu vượt quá giới hạn 1 KB của node',
+          empty_body:'Node nhận được yêu cầu trống',
+          bad_json:'Node không đọc được nội dung yêu cầu',
+          queue_full:'Node đang bận. Hãy thử lại sau giây lát',
+          no_mem:'Node không đủ bộ nhớ. Hãy khởi động lại rồi thử lại',
+          nvs_write_failed:'Không thể ghi cấu hình vào bộ nhớ flash',
+          scan_failed:'Không thể quét Wi-Fi. Hãy thử lại'};
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function emsg(e){return ERRS[e]||String(e)}
+function msg(t){$('msg').textContent=t}
+function show(inApp){$('login').hidden=inApp;$('app').hidden=!inApp;
+  if(!inApp){armSave(false);if(timer){clearInterval(timer);timer=null}}}
+async function api(p,b){
+  var o=b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{};
+  var r=await fetch('/api/'+p,o);
+  var j=await r.json().catch(function(){return{}});
+  /* A 401 on any authenticated call means the session is gone -> back to the
+     login screen. NOT for /api/login itself: there a 401 is the answer, and
+     short-circuiting it threw a literal 'unauthorized' before the body was
+     read, so 'bad_credentials' — the most-used error path in this UI — could
+     never be shown. Let it fall through to the body-driven throw below. */
+  if(r.status==401&&p!='login'){show(false);throw j.error||'unauthorized'}
+  if(!r.ok){throw j.error||('http '+r.status)}
+  return j;
+}
+async function login(){
+  $('lmsg').textContent='';
+  try{
+    var r=await api('login',{username:$('user').value,password:$('pass').value});
+    $('pass').value='';
+    show(true);$('warnbar').hidden=!r.default_pass;
+    await prefill();await refresh();
+    if(!timer)timer=setInterval(refresh,2000); /* also serves as keep-alive; 10 min idle only fires after the tab closes */
+  }catch(e){$('lmsg').textContent='Đăng nhập thất bại: '+emsg(e)}
+}
+async function logout(){try{await api('logout',{})}catch(e){}show(false)}
+async function refresh(){
+  try{
+    var s=await api('status');
+    $('warnbar').hidden=!s.default_pass;
+    var wifiState=s.sta.connected?'Đã kết nối':(s.provisioned?'Đang kết nối':'Chưa cấu hình');
+    var wifiDetail=s.sta.connected?esc(s.sta.ip)+' &middot; '+esc(s.sta.ssid):(s.provisioned?'Đang thử lại mạng đã lưu':'Cần nhập thông tin Wi-Fi');
+    $('status').innerHTML='<div class="node-line"><div><span class="node-id">'+esc(s.node_id)+'</span><span class="firmware">Firmware '+esc(s.fw)+'</span></div><span class="state">Đang hoạt động</span></div>'
+      +'<div class="metrics"><div class="metric metric-wide"><span class="metric-label">Wi-Fi</span><strong>'+wifiState+'</strong><small>'+wifiDetail+'</small></div>'
+      +'<div class="metric"><span class="metric-label">MQTT</span><strong>'+(s.mqtt?'Trực tuyến':'Ngoại tuyến')+'</strong><small>'+(s.mqtt?'Đã nối broker':'Chưa có kết nối')+'</small></div>'
+      +'<div class="metric"><span class="metric-label">Cảm biến</span><strong>'+(s.sensor?'Sẵn sàng':'Không có')+'</strong><small>'+(s.sensor?'Đã nhận SHT31':'Node vẫn hoạt động')+'</small></div></div>';
+    var h='';
+    s.relays.forEach(function(r){
+      h+='<div class="row"><span class="relay-name">'+esc(r.name)+'</span><span class="badge '+(r.state?'on':'off')+'">'
+        +(r.state?'Bật':'Tắt')+'</span><button class="secondary compact" onclick="toggleRelay('+r.ch+')">Chuyển</button></div>';
+    });
+    $('relays').innerHTML=h;
+  }catch(e){}
+}
+function armSave(ok){prefilled=ok;$('savebtn').disabled=!ok;$('prefillerr').hidden=ok}
+async function prefill(){
+  try{
+    var c=await api('config');
+    $('ssid').value=c.wifi.ssid;$('bssid').value=c.wifi.bak_ssid;
+    $('muri').value=c.mqtt.uri;$('muser').value=c.mqtt.user;
+    document.querySelector('input[name=ipmode][value='+(c.ip.mode=='static'?'static':'dhcp')+']').checked=true;
+    $('sip').value=c.ip.ip;$('snm').value=c.ip.netmask;$('sgw').value=c.ip.gateway;$('sdns').value=c.ip.dns;
+    ipMode();
+    armSave(true);
+  }catch(e){armSave(false)} /* never silent: the banner explains and offers Retry */
+}
+function ipMode(){$('staticbox').hidden=document.querySelector('input[name=ipmode]:checked').value!='static'}
+async function toggleRelay(ch){try{await api('relay',{channel:ch,state:'TOGGLE'});refresh()}catch(e){msg('Relay: '+emsg(e))}}
+async function doScan(){
+  var b=$('scanbtn');b.disabled=true;b.textContent='Đang quét…';
+  try{
+    var r=await api('scan');
+    var h='';
+    r.aps.forEach(function(a){
+      h+='<div class="ap" data-ssid="'+esc(a.ssid)+'" onclick="pick(this)"><span class="ap-main"><strong>'+esc(a.ssid)
+        +'</strong><small>'+esc(a.auth)+'</small></span><span class="signal">'+a.rssi+' dBm</span></div>';
+    });
+    $('aplist').innerHTML=h||'<p class="card-note">Không tìm thấy mạng Wi-Fi.</p>';
+  }catch(e){msg('Quét Wi-Fi: '+emsg(e))}
+  b.disabled=false;b.textContent='Quét mạng';
+}
+function pick(el){$('ssid').value=el.getAttribute('data-ssid')}
+async function setPass(){
+  var p=$('npass').value;
+  if(!p){msg('Hãy nhập mật khẩu mới trước');return}
+  try{
+    var r=await api('password',{password:p});
+    $('warnbar').hidden=!r.default_pass;$('npass').value='';msg('Đã cập nhật mật khẩu');
+  }catch(e){msg('Mật khẩu: '+emsg(e))}
+}
+async function saveAll(){
+  if(!prefilled){msg('Chưa đọc được cấu hình hiện tại. Hãy nhấn Thử lại trước khi lưu');return}
+  var w={};
+  if($('ssid').value)w.ssid=$('ssid').value;
+  if($('wpass').value)w.pass=$('wpass').value;
+  w.bak_ssid=$('bssid').value; /* empty clears the backup */
+  if($('bpass').value)w.bak_pass=$('bpass').value;
+  var mode=document.querySelector('input[name=ipmode]:checked').value;
+  var ip={mode:mode};
+  if(mode=='static'){ip.ip=$('sip').value;ip.netmask=$('snm').value;ip.gateway=$('sgw').value;ip.dns=$('sdns').value}
+  var m={};
+  if($('muri').value)m.uri=$('muri').value;
+  if($('muser').value)m.user=$('muser').value;
+  if($('mpass').value)m.pass=$('mpass').value;
+  try{
+    await api('config',{wifi:w,ip:ip,mqtt:m});
+    await api('reboot',{});
+    if(timer){clearInterval(timer);timer=null}
+    msg('Đã lưu. Node đang khởi động lại; hãy kết nối lại Wi-Fi thông thường.');
+  }catch(e){msg('Lưu cấu hình: '+emsg(e))}
+}
+$('pass').addEventListener('keydown',function(e){if(e.key=='Enter')login()});
+</script>
+</body>
+</html>

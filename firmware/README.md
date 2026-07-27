@@ -9,6 +9,128 @@ recovery SoftAP + captive-portal config UI.
 - Managed components: `espressif/mqtt ^1.0.0`, `espressif/cjson ^1.7.19`
   (both resolve **offline** from the mirror at `C:\Espressif\tools` — see below)
 
+## Source layout
+
+`main/` remains a single ESP-IDF component. Runtime code is grouped by
+responsibility while component metadata stays at the component root:
+
+```text
+main/
+|-- app/           app_main and application events
+|-- config/        NVS configuration and relay-state persistence
+|-- connectivity/  Wi-Fi, APSTA retry and SNTP
+|-- messaging/     MQTT lifecycle and discovery payloads
+|-- hardware/      Relay and button GPIO handling
+|-- sensors/       Sensor interface, SHT31 and sampling task
+|-- recovery/      Captive portal backend and embedded web UI
+|-- security/      Shared untrusted-JSON depth guard
+|-- CMakeLists.txt
+|-- Kconfig.projbuild
+`-- idf_component.yml
+```
+
+## Hướng dẫn đấu nối phần cứng
+
+Sơ đồ dưới đây dùng cấu hình GPIO mặc định. Nếu board ESP32-S3 của bạn không
+đưa các chân này ra header hoặc đang dùng chúng cho ngoại vi khác, hãy đổi chân
+trong `idf.py menuconfig` trước khi đấu nối.
+
+### Bảng chân mặc định
+
+| Thiết bị | Chân thiết bị | Chân ESP32-S3 | Ghi chú |
+|---|---|---|---|
+| Relay 1 | `IN1` | GPIO4 | Mặc định active-high |
+| Relay 2 | `IN2` | GPIO5 | Mặc định active-high |
+| Nút nhấn 1 | Một đầu nút | GPIO6 | Đầu còn lại nối GND |
+| Nút nhấn 2 | Một đầu nút | GPIO7 | Đầu còn lại nối GND |
+| SHT31 | `SDA` | GPIO8 | I2C, mức logic 3,3 V |
+| SHT31 | `SCL` | GPIO9 | I2C, mức logic 3,3 V |
+| SHT31 | `VIN`/`VCC` | 3V3 | Không kéo I2C lên 5 V |
+| SHT31 | `GND` | GND | Chung mass với ESP32 |
+
+### Relay hai kênh
+
+Đấu phần điều khiển của module relay như sau:
+
+```text
+ESP32-S3                    Module relay 2 kênh
+GPIO4   ------------------> IN1
+GPIO5   ------------------> IN2
+GND     ------------------> GND
+Nguồn phù hợp module ------> VCC
+```
+
+- GPIO của ESP32-S3 chỉ chịu mức logic **3,3 V** và không chịu được 5 V. Không
+  nối `VCC` 5 V hoặc tín hiệu 5 V vào GPIO4/GPIO5.
+- Cuộn relay không được cấp nguồn từ chân 3V3 của ESP32. Với module relay 5 V,
+  nên dùng nguồn 5 V riêng đủ dòng. Module không cách ly hoàn toàn phải nối GND
+  nguồn relay với GND của ESP32 để có chung mức tham chiếu.
+- Nếu module có `JD-VCC`/`VCC` và optocoupler, làm theo sơ đồ cách ly của đúng
+  module đó; không tự nối jumper hoặc mass khi chưa kiểm tra datasheet.
+- Firmware mặc định điều khiển relay active-high. Nhiều module relay phổ biến
+  lại kích ở mức thấp; khi đó bỏ chọn
+  `CONFIG_SHC_RELAY_ACTIVE_HIGH` trong `idf.py menuconfig`.
+- Nên thử trước bằng tải DC điện áp thấp để xác nhận relay không bật ngoài ý
+  muốn lúc cấp nguồn hoặc reset.
+
+Tiếp điểm tải của mỗi relay thường gồm `COM`, `NO` và `NC`:
+
+```text
+Nguồn tải ---- COM
+               |
+               +---- NO ---- Tải    (tải mặc định tắt)
+               |
+               +---- NC ---- Tải    (tải mặc định bật)
+Đầu còn lại của tải --------- Nguồn tải
+```
+
+Chỉ dùng một trong `NO` hoặc `NC` cho mỗi tải. **Không đấu điện lưới khi đang
+cấp nguồn hoặc kết nối USB.** Điện 110/220 V có thể gây điện giật, cháy và làm
+hỏng thiết bị; phần điện lưới cần hộp cách điện, cầu chì, dây đúng tiết diện,
+khoảng cách cách điện phù hợp và người có chuyên môn thực hiện.
+
+### Hai nút nhấn
+
+Mỗi nút nhấn thường hở được nối trực tiếp giữa GPIO và GND:
+
+```text
+GPIO6 ---- Nút nhấn 1 ---- GND
+GPIO7 ---- Nút nhấn 2 ---- GND
+```
+
+Firmware bật điện trở pull-up nội và nhận nút ở mức thấp, vì vậy không cần điện
+trở pull-up ngoài. Không nối nút vào 3V3 hoặc 5 V. Nút 1 điều khiển relay 1 và
+nút 2 điều khiển relay 2. Nút `BOOT` tích hợp trên board dùng GPIO0 và là nút
+riêng để mở recovery portal khi giữ 5 giây.
+
+### Cảm biến SHT31 (tùy chọn)
+
+```text
+ESP32-S3                    SHT31
+3V3     ------------------> VIN/VCC
+GND     ------------------> GND
+GPIO8   ------------------> SDA
+GPIO9   ------------------> SCL
+```
+
+- Cấp SHT31 bằng 3,3 V để bảo đảm SDA/SCL không bị kéo lên 5 V.
+- Phần lớn breakout SHT31 đã có điện trở pull-up I2C. Nếu dùng cảm biến rời hoặc
+  bus không ổn định, thêm điện trở khoảng 4,7 kOhm từ SDA lên 3V3 và từ SCL lên
+  3V3; tránh lắp trùng quá nhiều điện trở pull-up song song.
+- Firmware tự dò địa chỉ `0x44`, sau đó thử `0x45`. Với module có chân `ADDR`,
+  để mức mặc định cho `0x44` hoặc nối theo datasheet để chọn `0x45`.
+- SHT31 là tùy chọn. Nếu không phát hiện cảm biến lúc boot, node vẫn điều khiển
+  relay bình thường và không quảng bá capability cảm biến.
+
+### Kiểm tra trước khi cấp nguồn
+
+- [ ] Đã xác nhận đúng pinout của board ESP32-S3 và module đang sử dụng.
+- [ ] Không có điện áp 5 V đi vào GPIO hoặc đường SDA/SCL.
+- [ ] Relay dùng nguồn phù hợp và có chung GND nếu module không cách ly.
+- [ ] Nút nhấn nối GPIO xuống GND, không nối vào nguồn dương.
+- [ ] Chưa nối tải điện lưới trong lần chạy thử đầu tiên.
+- [ ] Đã kiểm tra active-high/active-low của module relay trong `menuconfig`.
+
 ## Environment activation
 
 Two equivalent methods; use one per shell session.
@@ -17,7 +139,7 @@ Two equivalent methods; use one per shell session.
 
 ```powershell
 . C:\Espressif\tools\Microsoft.v6.0.2.PowerShell_profile.ps1
-cd C:\Users\Izuki\Projects\SmartHomeController\firmware
+cd C:\Users\Izuki\Projects\esp32-smart-home\firmware
 idf.py set-target esp32s3     # once; regenerates sdkconfig from sdkconfig.defaults
 idf.py build
 ```
@@ -34,10 +156,10 @@ the session that dot-sourced the profile.
 $env:IDF_COMPONENT_LOCAL_STORAGE_URL = "file://C:\Espressif\tools"
 & "C:\Espressif\tools\python\v6.0.2\venv\Scripts\python.exe" `
   "C:\Espressif\esp\v6.0.2\esp-idf\tools\idf.py" `
-  -C C:\Users\Izuki\Projects\SmartHomeController\firmware set-target esp32s3
+  -C C:\Users\Izuki\Projects\esp32-smart-home\firmware set-target esp32s3
 & "C:\Espressif\tools\python\v6.0.2\venv\Scripts\python.exe" `
   "C:\Espressif\esp\v6.0.2\esp-idf\tools\idf.py" `
-  -C C:\Users\Izuki\Projects\SmartHomeController\firmware build
+  -C C:\Users\Izuki\Projects\esp32-smart-home\firmware build
 ```
 
 If the component manager unexpectedly tries the network and fails, the missing
@@ -194,7 +316,7 @@ While the portal is inactive, the HTTP server, DNS server and the AP netif do
 not exist (attack-surface minimization). Request bodies are capped at 1 KB, and
 every parse of JSON that came from outside the node — portal request bodies
 *and* MQTT payloads from the broker — is preceded by a nesting-depth scan
-(`json_guard.c`, cap 8; `CONFIG_CJSON_NESTING_LIMIT` is pinned to 16 as a
+(`main/security/json_guard.c`, cap 8; `CONFIG_CJSON_NESTING_LIMIT` is pinned to 16 as a
 second line of defense), so no remote peer can recurse cJSON through a task
 stack.
 
