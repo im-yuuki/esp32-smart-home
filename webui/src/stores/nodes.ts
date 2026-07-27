@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { NodeInfo, RelayState } from '@/types/api'
+import { NODE_CONTROL, type NodeInfo, type RelayState } from '@/types/api'
 import type { ServerEvent } from '@/types/events'
 import { listNodes, sendRelayCommand as postRelayCommand } from '@/api/nodes'
 import { roomCompare } from '@/utils/rooms'
@@ -20,6 +20,7 @@ interface PendingEntry {
  * RelayChannel objects inside the store's node map.
  */
 const pendingMap = new Map<string, PendingEntry>()
+const eventRevisions = new Map<string, number>()
 
 const keyOf = (nodeId: string, channel: number) => `${nodeId}:${channel}`
 
@@ -47,6 +48,7 @@ export const useNodesStore = defineStore('nodes', () => {
   const loading = ref(false)
   const loaded = ref(false)
   const loadError = ref<string | null>(null)
+  const selectedGroupId = ref<number | null>(null)
 
   const realtime = useRealtimeStore()
 
@@ -61,6 +63,7 @@ export const useNodesStore = defineStore('nodes', () => {
   const nodesByRoom = computed<Array<[string, NodeInfo[]]>>(() => {
     const rooms = new Map<string, NodeInfo[]>()
     for (const node of nodes.value.values()) {
+      if (selectedGroupId.value !== null && !node.groupIds.includes(selectedGroupId.value)) continue
       const list = rooms.get(node.room)
       if (list) list.push(node)
       else rooms.set(node.room, [node])
@@ -82,17 +85,37 @@ export const useNodesStore = defineStore('nodes', () => {
   // ------------------------------------------------------------------ actions
 
   let fetchInFlight: Promise<void> | null = null
+  let fetchGeneration = 0
 
   /** GET /nodes and replace the map. Also called after every WS (re)connect —
    *  resync covers events missed while the connection was down. */
   function fetchNodes(): Promise<void> {
     if (fetchInFlight) return fetchInFlight
     loading.value = true
+    const generation = fetchGeneration
+    const revisionsAtStart = new Map(eventRevisions)
     fetchInFlight = (async () => {
       try {
         const list = await listNodes()
+        if (generation !== fetchGeneration) return
         const map = new Map<string, NodeInfo>()
-        for (const node of list) map.set(node.nodeId, node)
+        for (const node of list) {
+          const existing = nodes.value.get(node.nodeId)
+          if (existing && (eventRevisions.get(node.nodeId) ?? 0) !== (revisionsAtStart.get(node.nodeId) ?? 0)) {
+            node.online = existing.online
+            node.lastSeen = existing.lastSeen
+            node.sensor = existing.sensor
+            for (const relay of node.relays) {
+              const currentRelay = existing.relays.find((item) => item.channel === relay.channel)
+              if (currentRelay) {
+                relay.state = currentRelay.state
+                relay.source = currentRelay.source
+                relay.pending = currentRelay.pending
+              }
+            }
+          }
+          map.set(node.nodeId, node)
+        }
         // Preserve the pending flag for commands still in flight (the fetched
         // snapshot knows nothing about our local machine).
         for (const key of pendingMap.keys()) {
@@ -104,10 +127,13 @@ export const useNodesStore = defineStore('nodes', () => {
         loaded.value = true
         loadError.value = null
       } catch (e) {
+        if (generation !== fetchGeneration) return
         loadError.value = e instanceof Error ? e.message : String(e)
       } finally {
-        loading.value = false
-        fetchInFlight = null
+        if (generation === fetchGeneration) {
+          loading.value = false
+          fetchInFlight = null
+        }
       }
     })()
     return fetchInFlight
@@ -123,7 +149,8 @@ export const useNodesStore = defineStore('nodes', () => {
     const node = nodes.value.get(nodeId)
     const relay = node?.relays.find((r) => r.channel === channel)
     if (!node || !relay) return
-    if (!node.online || !realtime.isConnected || pendingMap.has(key)) return
+    if (!node.permissions.includes(NODE_CONTROL)
+        || !node.online || !realtime.isConnected || pendingMap.has(key)) return
 
     const prevState = relay.state
     relay.pending = true
@@ -193,6 +220,7 @@ export const useNodesStore = defineStore('nodes', () => {
 
   /** Single dispatch entry point for realtime events (real STOMP or mockSocket). */
   function applyEvent(ev: ServerEvent): void {
+    eventRevisions.set(ev.nodeId, (eventRevisions.get(ev.nodeId) ?? 0) + 1)
     const node = nodes.value.get(ev.nodeId)
     if (!node) {
       // A node that self-discovered after page load — full refetch (Phase 1 simplicity).
@@ -242,15 +270,35 @@ export const useNodesStore = defineStore('nodes', () => {
     }
   }
 
+  function can(node: NodeInfo, permission: string): boolean {
+    return node.permissions.includes(permission)
+  }
+
+  function reset(): void {
+    fetchGeneration++
+    for (const entry of pendingMap.values()) window.clearTimeout(entry.timer)
+    pendingMap.clear()
+    eventRevisions.clear()
+    nodes.value = new Map()
+    loading.value = false
+    loaded.value = false
+    loadError.value = null
+    selectedGroupId.value = null
+    fetchInFlight = null
+  }
+
   return {
     nodes,
     loading,
     loaded,
     loadError,
+    selectedGroupId,
     nodesByRoom,
     nodeById,
     fetchNodes,
     sendRelayCommand,
     applyEvent,
+    can,
+    reset,
   }
 })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { NodeInfo, RelayChannel } from '@/types/api'
+import { NODE_CONTROL, TELEMETRY_VIEW, type NodeInfo, type RelayChannel } from '@/types/api'
 import NodeStatusBadge from '@/components/NodeStatusBadge.vue'
 import RelaySwitch from '@/components/RelaySwitch.vue'
 import SensorCard from '@/components/SensorCard.vue'
@@ -14,7 +14,9 @@ const realtime = useRealtimeStore()
 
 // A command sent while the WS is down could never be confirmed and would
 // always hit the 5s timeout — prevent it; the header indicator explains why.
-const controlsDisabled = computed(() => !props.node.online || !realtime.isConnected)
+const controlsDisabled = computed(() =>
+  !props.node.permissions.includes(NODE_CONTROL) || !props.node.online || !realtime.isConnected,
+)
 
 function onToggle(relay: RelayChannel): void {
   void nodesStore.sendRelayCommand(
@@ -53,7 +55,7 @@ function onToggle(relay: RelayChannel): void {
           @toggle="onToggle(relay)"
         />
       </div>
-      <SensorCard v-if="node.hasSensor" :sensor="node.sensor" />
+      <SensorCard v-if="node.hasSensor && node.permissions.includes(TELEMETRY_VIEW)" :sensor="node.sensor" />
     </div>
 
     <template #footer>

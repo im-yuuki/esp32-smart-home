@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 /** Backend response envelope: every /api/v1 response is `{ data, error }`. */
 export interface ApiErrorBody {
@@ -36,7 +36,36 @@ function isEnvelope(body: unknown): body is ApiEnvelope<unknown> {
 export const http = axios.create({
   baseURL: '/api/v1',
   timeout: 10_000,
+  withCredentials: true,
   headers: { Accept: 'application/json' },
+})
+
+let csrfToken: { token: string; headerName: string } | null = null
+let unauthorizedHandler: (() => void) | null = null
+let authGeneration = 0
+
+type GeneratedRequestConfig = InternalAxiosRequestConfig & { authGeneration?: number }
+
+export function advanceAuthGeneration(): void {
+  authGeneration++
+}
+
+export function setCsrfToken(value: { token: string; headerName: string } | null): void {
+  csrfToken = value
+}
+
+export function getCsrfToken(): { token: string; headerName: string } | null {
+  return csrfToken
+}
+
+export function setUnauthorizedHandler(handler: () => void): void {
+  unauthorizedHandler = handler
+}
+
+http.interceptors.request.use((config) => {
+  ;(config as GeneratedRequestConfig).authGeneration = authGeneration
+  if (csrfToken) config.headers.set(csrfToken.headerName, csrfToken.token)
+  return config
 })
 
 http.interceptors.response.use(
@@ -52,6 +81,12 @@ http.interceptors.response.use(
   },
   (error: AxiosError<unknown>) => {
     const body = error.response?.data
+    const url = error.config?.url ?? ''
+    const requestGeneration = (error.config as GeneratedRequestConfig | undefined)?.authGeneration
+    if (error.response?.status === 401 && requestGeneration === authGeneration
+        && !url.endsWith('/auth/me') && !url.endsWith('/auth/login')) {
+      unauthorizedHandler?.()
+    }
     if (isEnvelope(body) && body.error) {
       throw new ApiError(body.error.code, body.error.message, error.response?.status)
     }

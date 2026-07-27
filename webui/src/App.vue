@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { onBeforeUnmount, watch } from 'vue'
 import { RouterView } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useAuthStore } from '@/stores/auth'
+import { useNodesStore } from '@/stores/nodes'
 
 // Realtime lifecycle is owned here — one STOMP client for the whole app.
 const { connect, disconnect } = useWebSocket()
+const auth = useAuthStore()
+const nodes = useNodesStore()
 
-onMounted(connect)
+watch(
+  () => auth.isAuthenticated,
+  (authenticated) => {
+    if (authenticated) void connect()
+    else {
+      void disconnect()
+      nodes.reset()
+    }
+  },
+  { immediate: true },
+)
 onBeforeUnmount(() => {
   void disconnect()
 })

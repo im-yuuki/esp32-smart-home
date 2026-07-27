@@ -20,13 +20,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // "*" is dev-only (Vite dev server origin); Phase 2 tightens this
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
+        registry.addEndpoint("/ws").withSockJS();
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic")
+        registry.enableSimpleBroker("/queue")
                 .setHeartbeatValue(new long[] {10_000, 10_000})
                 .setTaskScheduler(wsHeartbeatTaskScheduler());
         registry.setApplicationDestinationPrefixes("/app"); // unused in Phase 1, harmless

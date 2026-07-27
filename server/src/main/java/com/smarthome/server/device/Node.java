@@ -13,10 +13,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import com.smarthome.server.account.AppUser;
 
 @Entity
 @Table(name = "nodes")
@@ -54,6 +60,17 @@ public class Node {
     /** DB-generated ({@code DEFAULT now()}); never written by the application. */
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false)
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by")
+    private AppUser approvedBy;
 
     @OneToMany(mappedBy = "node", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Capability> capabilities = new ArrayList<>();

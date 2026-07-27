@@ -1,5 +1,12 @@
 server:
   port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
+      timeout: ${SESSION_TIMEOUT:8h}
 
 spring:
   application:
@@ -12,13 +19,17 @@ spring:
     hibernate:
       ddl-auto: validate   # Flyway owns the schema
     open-in-view: false
-
 smarthome:
   mqtt:
     uri: ${MQTT_URI:tcp://localhost:1883}
     username: ${MQTT_USERNAME:server}
     password: ${MQTT_PASSWORD:changeme}
     client-id: ${MQTT_CLIENT_ID:server-core}
+  security:
+    bootstrap-admin:
+      username: ${BOOTSTRAP_ADMIN_USERNAME:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      display-name: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:System Administrator}
 
 management:
   endpoints:

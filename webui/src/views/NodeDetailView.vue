@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import NodeStatusBadge from '@/components/NodeStatusBadge.vue'
 import RelaySwitch from '@/components/RelaySwitch.vue'
@@ -8,7 +8,7 @@ import SensorHistoryChart from '@/components/SensorHistoryChart.vue'
 import { getSensorHistory } from '@/api/telemetry'
 import { useNodesStore } from '@/stores/nodes'
 import { useRealtimeStore } from '@/stores/realtime'
-import type { RelayChannel, SensorSample } from '@/types/api'
+import { NODE_CONTROL, TELEMETRY_VIEW, type RelayChannel, type SensorSample } from '@/types/api'
 import { absoluteTime } from '@/utils/time'
 import { roomLabel } from '@/utils/rooms'
 
@@ -19,28 +19,37 @@ const realtime = useRealtimeStore()
 const nodeId = computed(() => String(route.params.nodeId ?? ''))
 const node = computed(() => store.nodeById(nodeId.value))
 
-const controlsDisabled = computed(() => !node.value?.online || !realtime.isConnected)
+const controlsDisabled = computed(() =>
+  !node.value?.permissions.includes(NODE_CONTROL) || !node.value.online || !realtime.isConnected,
+)
 
 // History is presentation state, not shared — a view-local buffer, not the store.
 const samples = ref<SensorSample[]>([])
 const historyLoading = ref(false)
 const historyError = ref<string | null>(null)
 let historyLoadedFor: string | null = null
+let historyGeneration = 0
 
 async function loadHistory(): Promise<void> {
   const current = node.value
-  if (!current?.hasSensor || historyLoadedFor === current.nodeId) return
+  if (!current?.hasSensor || !current.permissions.includes(TELEMETRY_VIEW)
+      || historyLoadedFor === current.nodeId) return
   historyLoadedFor = current.nodeId
+  const generation = historyGeneration
+  const requestedNodeId = current.nodeId
   historyLoading.value = true
   historyError.value = null
   try {
     // No from/to params -> the backend's now-24h .. now default window.
-    samples.value = await getSensorHistory(current.nodeId)
+    const result = await getSensorHistory(current.nodeId)
+    if (generation !== historyGeneration || nodeId.value !== requestedNodeId) return
+    samples.value = result
   } catch (e) {
+    if (generation !== historyGeneration || nodeId.value !== requestedNodeId) return
     historyError.value = e instanceof Error ? e.message : String(e)
     historyLoadedFor = null
   } finally {
-    historyLoading.value = false
+    if (generation === historyGeneration && nodeId.value === requestedNodeId) historyLoading.value = false
   }
 }
 
@@ -52,10 +61,12 @@ onMounted(async () => {
 
 // Re-arm when navigating between nodes, and load once the node materializes.
 watch(nodeId, () => {
+  historyGeneration++
   samples.value = []
   historyLoadedFor = null
   void loadHistory()
 })
+onBeforeUnmount(() => { historyGeneration++ })
 watch(node, () => {
   void loadHistory()
 })
@@ -159,7 +170,7 @@ function onToggle(relay: RelayChannel): void {
         </div>
       </UCard>
 
-      <UCard v-if="node.hasSensor">
+      <UCard v-if="node.hasSensor && node.permissions.includes(TELEMETRY_VIEW)">
         <template #header>
           <div class="flex items-center justify-between gap-2">
             <h2 class="font-medium text-highlighted">Temperature &amp; humidity — last 24h</h2>

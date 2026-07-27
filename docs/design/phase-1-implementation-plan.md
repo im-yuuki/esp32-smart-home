@@ -9,7 +9,7 @@ The user has a Vietnamese-language roadmap (`C:\Users\Izuki\Downloads\ROADMAP.md
 - **Sensor**: none on hand — sensor behind a driver interface (SHT31 first impl); firmware boots/runs/passes acceptance with sensor absent, omitting the sensor capability from discovery.
 - **Backend**: Spring Boot **4.1.0** / Java 21 (user chose over roadmap's 3.x — 3.5 line hit OSS EOL 2026-06-30).
 - **Web UI**: Vue 3 + Vite + TS + Pinia + vue-router + **Nuxt UI v4** (standalone via `@nuxt/ui/vite` plugin + `@nuxt/ui/vue-plugin`, Tailwind v4) + ECharts (direct, modular imports).
-- **Layout**: roadmap monorepo at `C:\Users\Izuki\Projects\SmartHomeController` — `firmware/ server/ webui/ deploy/ docs/`; **remove the existing empty `esp32/`, `esp32-webui/`, `server-webui/` dirs** (user approved); `git init` at root, Conventional Commits.
+- **Layout**: roadmap monorepo at `C:\Users\Izuki\Projects\SmartHomeController` — `firmware/ server/ webui/ docs/` plus deployment files at root; **remove the existing empty `esp32/`, `esp32-webui/`, `server-webui/` dirs** (user approved); `git init` at root, Conventional Commits.
 
 ### Environment facts (verified this session)
 - **ESP-IDF v6.0.2** at `C:\Espressif\esp\v6.0.2\esp-idf` (roadmap assumed v5.x). Verified v6 deltas: `esp-mqtt` and `cJSON` are now **managed registry components** (`espressif/mqtt` 1.0.0, `espressif/cjson` 1.7.19), both present in the local offline mirror `C:\Espressif\tools\components\espressif\` (profile script presets `IDF_COMPONENT_LOCAL_STORAGE_URL=file://C:\Espressif\tools` → builds work offline); driver split (`esp_driver_gpio`/`esp_driver_i2c`, legacy `driver/i2c.h` EOL); warnings are errors (GCC 15); FreeRTOS headers need explicit includes.
@@ -30,8 +30,8 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 
 ## Milestones (implementation order)
 
-- **M0 — Repo scaffold**: `git init`; remove empty `esp32/ esp32-webui/ server-webui/`; create `firmware/ server/ webui/ deploy/ docs/{design,adr}`; copy design docs; root README; 4 ADR stubs (IDF v6, Boot 4, Nuxt UI, sensor-optional); root `.gitignore`. Initial commit.
-- **M1 — deploy/ skeleton**: postgres:16 + eclipse-mosquitto:2 in compose, `mosquitto.conf`, `.env`/`.env.example`, automatic password-file initialization. Smoke: authed pub/sub round-trip; anonymous refused.
+- **M0 — Repo scaffold**: `git init`; remove empty `esp32/ esp32-webui/ server-webui/`; create `firmware/ server/ webui/ docs/{design,adr}`; copy design docs; root README; 4 ADR stubs (IDF v6, Boot 4, Nuxt UI, sensor-optional); root `.gitignore`. Initial commit.
+- **M1 — root deployment skeleton**: postgres:16 + eclipse-mosquitto:2 in compose, `mosquitto.conf`, `.env`/`.env.example`, automatic password-file initialization. Smoke: authed pub/sub round-trip; anonymous refused.
 - **M2 — server/**: 8 increments (below), verified against MQTT traffic from real nodes.
 - **M3 — webui/**: mock-mode-first build (10 steps below), then integrate against the real stack; nginx same-origin prod wiring.
 - **M4 — firmware/** (parallelizable with M2/M3 once M1 is up): 9 increments ending in acceptance hardening. Needs board on COM4.
@@ -54,7 +54,7 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 - **REST `/api/v1`** per roadmap table; all responses in `ApiResponse<T>` envelope; `POST .../relays/{ch}/command` validates node+capability exist, publishes `{"state":...}` to `.../set`, returns **202 immediately** — never waits, never fakes state. History: raw rows, `from`/`to` ISO-8601 (defaults now−24h/now), asc, capped 10k rows; `bucket` accepted-and-ignored (Phase 1).
 - **WebSocket**: STOMP `/ws` + SockJS, simple broker `/topic`, `EventMessage(type,nodeId,channel,data,ts)` with `ts` = epoch **millis**; `StatePublisher` → `/topic/events`. **Cross-plan fix: configure broker heartbeats** — `enableSimpleBroker("/topic").setHeartbeatValue(new long[]{10000,10000}).setTaskScheduler(<a TaskScheduler bean>)` — the UI relies on 10s/10s heartbeats for dead-connection detection.
 - **Dockerfile**: `maven:3.9.11-eclipse-temurin-21` build (with `dependency:go-offline` cached layer) → `eclipse-temurin:21-jre-alpine`, non-root user; healthcheck uses busybox `wget` (no curl in alpine JRE).
-- **deploy/**: compose services `postgres` (healthcheck-gated), `mosquitto-init` (idempotently creates or updates the server credential), `mosquitto` (1883 LAN, conf + passwd in named volume — avoids Windows bind-mount permission issues), `server`, and `webui` (build context **`../webui`** — plans referenced `../server-webui`, superseded by the layout decision). `mosquitto.conf`: explicit `listener 1883` + `allow_anonymous false` + `password_file`; add real node users later with `mosquitto_passwd` + `SIGHUP` reload. `deploy/nginx/default.conf` bind-mounted into the webui container is the **single** nginx config (webui's own copy dropped — one source of truth): SPA `try_files` fallback, `/api/` and `/ws` proxied to `server:8080` with upgrade headers + `proxy_read_timeout 3600s`.
+- **Root deployment files**: compose services `postgres` (healthcheck-gated), `mosquitto-init` (idempotently creates or updates the server credential), `mosquitto` (1883 LAN, conf + passwd in named volume), `server`, and `webui` (build contexts `./server` and `./webui`). Root `mosquitto.conf` configures authentication; root `nginx.conf` is bind-mounted into the webui container and proxies `/api/` and `/ws` to `server:8080`.
 **Backend implementation increments (each with smoke test in design doc):** ① deploy skeleton (=M1) → ② server skeleton + Flyway (health UP, tables created) → ③ entities/repos + read-only REST (validates JSONB/INET mapping at boot via `ddl-auto: validate`) → ④ MQTT inbound: discovery+status (real node boots → GET /nodes shows node) → ⑤ relay/sensor state persistence → ⑥ WebSocket events → ⑦ outbound gateway + command endpoint (202; lastState unchanged until the node reports state) → ⑧ telemetry endpoints.
 
 ## M3: Web UI (`webui/`) — summary
@@ -85,7 +85,7 @@ Produced by exploration/design agents this session. **Milestone 0 copies them in
 
 ## Verification — GĐ1 acceptance criteria mapping
 
-Run after M5, from `deploy/`: `docker compose up -d` (only `.env` creation is required first; Compose initializes the password file).
+Run after M5 from the repository root: `docker compose up -d` (only `.env` creation is required first; Compose initializes the password file).
 
 | Roadmap criterion | How verified |
 |---|---|

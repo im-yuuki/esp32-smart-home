@@ -33,6 +33,8 @@ export interface NodeDto {
   online: boolean
   lastSeen: string | null // ISO-8601 instant
   capabilities: CapabilityDto[] | null
+  groupIds: number[]
+  permissions: string[]
 }
 
 /** Backend SensorReadingDto (GET .../sensors/history rows). */
@@ -80,7 +82,13 @@ export interface NodeInfo {
   hasSensor: boolean
   sensorMeta?: SensorMeta
   sensor: SensorReading | null
+  groupIds: number[]
+  permissions: string[]
 }
+
+export const NODE_VIEW = 'NODE_VIEW'
+export const NODE_CONTROL = 'NODE_CONTROL'
+export const TELEMETRY_VIEW = 'TELEMETRY_VIEW'
 
 export interface SensorSample {
   ts: number // epoch ms

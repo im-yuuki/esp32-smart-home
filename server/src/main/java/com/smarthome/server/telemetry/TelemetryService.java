@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.smarthome.server.common.NotFoundException;
 import com.smarthome.server.common.dto.SensorReadingDto;
+import com.smarthome.server.account.AppUser;
+import com.smarthome.server.authorization.AuthorizationService;
+import com.smarthome.server.authorization.Permission;
 import com.smarthome.server.device.Node;
 import com.smarthome.server.device.NodeRepository;
 
@@ -27,6 +30,7 @@ public class TelemetryService {
 
     private final NodeRepository nodeRepository;
     private final SensorReadingRepository readingRepository;
+    private final AuthorizationService authorizationService;
 
     /** @return false when the node is unknown — caller drops the reading. */
     @Transactional
@@ -45,6 +49,8 @@ public class TelemetryService {
     /** 404 if the node is unknown; {@code null} data when the node has no readings yet. */
     @Transactional(readOnly = true)
     public SensorReadingDto latest(String nodeId) {
+        AppUser user = authorizationService.requireReadyUser();
+        authorizationService.requireNodePermission(user, nodeId, Permission.TELEMETRY_VIEW);
         Node node = requireNode(nodeId);
         return readingRepository.findFirstByNodeOrderByTsDesc(node)
                 .map(TelemetryService::toDto)
@@ -58,6 +64,8 @@ public class TelemetryService {
      */
     @Transactional(readOnly = true)
     public List<SensorReadingDto> history(String nodeId, Instant from, Instant to, String bucket) {
+        AppUser user = authorizationService.requireReadyUser();
+        authorizationService.requireNodePermission(user, nodeId, Permission.TELEMETRY_VIEW);
         Node node = requireNode(nodeId);
         if (bucket != null && !bucket.isBlank()) {
             log.info("history bucket='{}' accepted but ignored — Phase 1 returns raw rows", bucket);
@@ -73,7 +81,8 @@ public class TelemetryService {
     }
 
     private Node requireNode(String nodeId) {
-        return nodeRepository.findByNodeId(nodeId)
+        return nodeRepository.findByNodeIdAndApprovalStatus(nodeId,
+                        com.smarthome.server.device.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new NotFoundException("node %s not found".formatted(nodeId)));
     }
 

@@ -2,8 +2,8 @@
 
 Vue 3 (Composition API, `<script setup lang="ts">`) + Vite + TypeScript + Pinia +
 vue-router + **Nuxt UI v4** (standalone, Tailwind v4) + ECharts (modular).
-REST via axios, realtime via STOMP/SockJS on `/ws` (subscribes `/topic/events`).
-No auth in Phase 1. All URLs are relative (`/api/...`, `/ws`) so the Vite dev
+REST via axios, cookie-session authentication, group-scoped RBAC, and realtime via
+STOMP/SockJS on `/ws` (subscribes `/user/queue/events`). All URLs are relative (`/api/...`, `/ws`) so the Vite dev
 proxy and the prod same-origin nginx both work unchanged.
 
 ## Scripts
@@ -48,7 +48,7 @@ subscription, so stores/components behave identically in both modes.
 - **`src/composables/useWebSocket.ts`**: stompjs `Client` with
   `webSocketFactory: () => new SockJS(origin + '/ws')`, built-in exponential
   backoff 1 s → 30 s, 10 s/10 s heartbeats; every (re)connect refetches
-  `/api/v1/nodes` (resync) and resubscribes `/topic/events`.
+  `/api/v1/nodes` (resync) and resubscribes `/user/queue/events`.
 - **Timestamps**: everything past the api/event boundary is epoch **ms**.
   REST ISO-8601 strings and MQTT epoch-seconds payloads are normalized in
   `src/api/*` / `src/utils/time.ts`; components never convert.
@@ -63,14 +63,13 @@ docker build -t smarthome-webui .
 ```
 
 `node:26-alpine` build stage → `nginx:alpine` serving `dist/`. The image ships
-a minimal standalone `nginx.conf` (SPA only, no proxy). In the compose stack
-(`deploy/docker-compose.yml`) that file is bind-mounted over by
-`deploy/nginx/default.conf`, which adds the `/api` and `/ws` reverse proxies to
+a minimal standalone `nginx.conf` (SPA only, no proxy). In the root `compose.yml`
+that file is bind-mounted over by the root `nginx.conf`, which adds the `/api` and `/ws` reverse proxies to
 the `server` container — that file is the single deployment source of truth.
 
 ## Dev against the real stack
 
 ```sh
-cd ../deploy && docker compose up -d        # postgres + mosquitto + server
-cd ../webui && npm run dev                  # proxies to localhost:8080
+cd .. && docker compose up -d               # postgres + mosquitto + server
+cd webui && npm run dev                     # proxies to localhost:8080
 ```

@@ -29,6 +29,8 @@ export const mockNodes: NodeInfo[] = [
     hasSensor: true,
     sensorMeta: { kind: 'temperature_humidity', model: 'SHT31', intervalS: 30 },
     sensor: { temperature: 28.5, humidity: 65.2, ts: Date.now() },
+    groupIds: [1],
+    permissions: ['NODE_VIEW', 'NODE_CONTROL', 'TELEMETRY_VIEW'],
   },
   {
     nodeId: FLAPPING_NODE_ID,
@@ -40,6 +42,8 @@ export const mockNodes: NodeInfo[] = [
     relays: [{ channel: 1, name: 'Den ngu', state: 'OFF', source: 'boot', pending: false }],
     hasSensor: false,
     sensor: null,
+    groupIds: [2],
+    permissions: ['NODE_VIEW', 'TELEMETRY_VIEW'],
   },
   {
     nodeId: NEVER_ACK_NODE_ID,
@@ -51,6 +55,8 @@ export const mockNodes: NodeInfo[] = [
     relays: [{ channel: 1, name: 'Quat tran', state: 'OFF', source: 'boot', pending: false }],
     hasSensor: false,
     sensor: null,
+    groupIds: [1, 2],
+    permissions: ['NODE_VIEW', 'NODE_CONTROL', 'TELEMETRY_VIEW'],
   },
 ]
 

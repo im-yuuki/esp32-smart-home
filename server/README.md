@@ -9,7 +9,7 @@ MQTT 7.1.0 + Paho v3 (MQTT 3.1.1), Hibernate ORM 7.4, Flyway, PostgreSQL 16.
 
 ## Docker dev loop
 
-Everything runs through the compose stack in `../deploy` (run all commands from there):
+Everything runs through `compose.yml` at the repository root:
 
 ```bash
 docker compose up -d --build server                     # rebuild + restart backend
@@ -18,7 +18,7 @@ docker compose logs -f server                           # watch logs
 
 Configuration is env-driven (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `MQTT_URI`,
 `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_CLIENT_ID`) — compose injects the values from
-`deploy/.env`. Health: `http://localhost/actuator/health` (or the configured `HTTP_PORT`).
+the root `.env`. Health: `http://localhost/actuator/health` (or the configured `HTTP_PORT`).
 
 ## REST surface (`/api/v1`, all responses in the `{"data":…,"error":…}` envelope)
 
@@ -30,7 +30,7 @@ Configuration is env-driven (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `MQTT_URI`,
 | GET | `/nodes/{nodeId}/sensors/latest` | `data: null` when no readings yet |
 | GET | `/nodes/{nodeId}/sensors/history?from=&to=&bucket=` | ISO-8601 instants, default last 24 h, raw rows asc, capped 10 000; `bucket` accepted-and-ignored in Phase 1 |
 
-WebSocket: STOMP endpoint `/ws` (SockJS), broadcast `/topic/events`, payload
+WebSocket: authenticated STOMP endpoint `/ws` (SockJS), per-user `/user/queue/events`, payload
 `{type, nodeId, channel, data, ts}` with `ts` = epoch millis; broker heartbeats 10 s/10 s.
 
 ## Design notes / deviations

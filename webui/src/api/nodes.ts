@@ -101,6 +101,8 @@ export function mapNodeDto(dto: NodeDto): NodeInfo {
     hasSensor,
     sensorMeta,
     sensor,
+    groupIds: dto.groupIds ?? [],
+    permissions: dto.permissions ?? [],
   }
 }
 

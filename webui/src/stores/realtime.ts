@@ -8,7 +8,7 @@ export type RealtimeStatus = 'connecting' | 'connected' | 'reconnecting' | 'disc
  * never enters Pinia state — Vue proxying breaks it; it lives in useWebSocket.
  */
 export const useRealtimeStore = defineStore('realtime', () => {
-  const status = ref<RealtimeStatus>('connecting')
+  const status = ref<RealtimeStatus>('disconnected')
   const attempts = ref(0)
   const lastConnectedAt = ref<number | null>(null)
 
@@ -33,6 +33,12 @@ export const useRealtimeStore = defineStore('realtime', () => {
     status.value = 'disconnected'
   }
 
+  function reset() {
+    status.value = 'disconnected'
+    attempts.value = 0
+    lastConnectedAt.value = null
+  }
+
   return {
     status,
     attempts,
@@ -42,5 +48,6 @@ export const useRealtimeStore = defineStore('realtime', () => {
     setConnected,
     setReconnecting,
     setDisconnected,
+    reset,
   }
 })

@@ -11,6 +11,11 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.smarthome.server.account.AppUser;
+import com.smarthome.server.audit.AuditService;
+import com.smarthome.server.authorization.AuthorizationService;
+import com.smarthome.server.authorization.NodeGroupMembershipRepository;
+import com.smarthome.server.authorization.Permission;
 import com.smarthome.server.common.NotFoundException;
 import com.smarthome.server.common.dto.CapabilityDto;
 import com.smarthome.server.common.dto.NodeDto;
@@ -31,17 +36,26 @@ public class NodeService {
     private final NodeRepository nodeRepository;
     private final MqttGateway mqttGateway;
     private final JsonMapper jsonMapper;
+    private final AuthorizationService authorizationService;
+    private final NodeGroupMembershipRepository nodeGroupMembershipRepository;
+    private final AuditService auditService;
 
     // ------------------------------------------------------------------ queries
 
     @Transactional(readOnly = true)
     public List<NodeDto> getAllNodes() {
-        return nodeRepository.findAllWithCapabilities().stream().map(this::toDto).toList();
+        AppUser user = authorizationService.requireReadyUser();
+        List<Node> nodes = user.isSystemAdmin()
+                ? nodeRepository.findAllApprovedWithCapabilities()
+                : nodeRepository.findAuthorizedWithCapabilities(user.getId());
+        return nodes.stream().map(node -> toDto(node, user)).toList();
     }
 
     @Transactional(readOnly = true)
     public NodeDto getNode(String nodeId) {
-        return toDto(requireNodeWithCapabilities(nodeId));
+        AppUser user = authorizationService.requireReadyUser();
+        authorizationService.requireNodePermission(user, nodeId, Permission.NODE_VIEW);
+        return toDto(requireApprovedNodeWithCapabilities(nodeId), user);
     }
 
     // ------------------------------------------------------------------ MQTT-driven writes
@@ -140,9 +154,11 @@ public class NodeService {
      * answers 202). State-topic-is-truth: the resulting state is never waited for or faked;
      * {@code last_state} changes only when the node reports back on {@code .../relay/{ch}/state}.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public void sendRelayCommand(String nodeId, int channel, String state) {
-        Node node = requireNodeWithCapabilities(nodeId);
+        AppUser user = authorizationService.requireReadyUser();
+        authorizationService.requireNodePermission(user, nodeId, Permission.NODE_CONTROL);
+        Node node = requireApprovedNodeWithCapabilities(nodeId);
         boolean hasRelay = node.getCapabilities().stream()
                 .anyMatch(c -> "relay".equals(c.getType()) && c.getChannel() == channel);
         if (!hasRelay) {
@@ -153,12 +169,19 @@ public class NodeService {
         String payload = "{\"state\":\"%s\"}".formatted(state);
         mqttGateway.publish(topic, payload);
         log.info("command published to {}: {}", topic, payload);
+        auditService.record(user, "RELAY_COMMAND", "NODE", nodeId,
+                jsonMapper.createObjectNode().put("channel", channel).put("state", state).toString());
     }
 
     // ------------------------------------------------------------------ helpers
 
     private Node requireNodeWithCapabilities(String nodeId) {
         return nodeRepository.findWithCapabilitiesByNodeId(nodeId)
+                .orElseThrow(() -> new NotFoundException("node %s not found".formatted(nodeId)));
+    }
+
+    private Node requireApprovedNodeWithCapabilities(String nodeId) {
+        return nodeRepository.findApprovedWithCapabilitiesByNodeId(nodeId)
                 .orElseThrow(() -> new NotFoundException("node %s not found".formatted(nodeId)));
     }
 
@@ -173,14 +196,19 @@ public class NodeService {
         return jsonMapper.writeValueAsString(meta);
     }
 
-    private NodeDto toDto(Node node) {
+    private NodeDto toDto(Node node, AppUser user) {
+        Set<String> permissions = authorizationService.permissionsForNode(user, node.getNodeId());
         List<CapabilityDto> capabilities = node.getCapabilities().stream()
+                .filter(c -> !"sensor".equals(c.getType())
+                        || permissions.contains(Permission.TELEMETRY_VIEW))
                 .sorted(Comparator.comparing(Capability::getType)
                         .thenComparingInt(Capability::getChannel))
                 .map(c -> new CapabilityDto(c.getType(), c.getChannel(), c.getName(),
                         c.getMeta(), c.getLastState()))
                 .toList();
         return new NodeDto(node.getNodeId(), node.getRoom(), node.getFwVersion(), node.getIp(),
-                node.isOnline(), node.getLastSeen(), capabilities);
+                node.isOnline(), node.getLastSeen(), capabilities,
+                nodeGroupMembershipRepository.findGroupIdsByNodeId(node.getNodeId()),
+                permissions);
     }
 }

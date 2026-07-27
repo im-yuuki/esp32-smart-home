@@ -29,6 +29,18 @@ public class GlobalExceptionHandler {
         return ApiResponse.error("NOT_FOUND", "no such endpoint");
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> forbidden(ForbiddenException e) {
+        return ApiResponse.error("FORBIDDEN", e.getMessage());
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> unauthenticated(UnauthenticatedException e) {
+        return ApiResponse.error("UNAUTHORIZED", e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiResponse<Void> validation(MethodArgumentNotValidException e) {

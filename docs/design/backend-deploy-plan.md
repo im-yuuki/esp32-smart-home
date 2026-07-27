@@ -1,10 +1,10 @@
-Docker 29.6.1 + Compose v5.3.0 and Node 26.5.0 confirmed; no Java/Maven, as stated. The repo is empty scaffolding: `esp32/`, `esp32-webui/`, `server/`, `server-webui/` (no `deploy/` yet â€” note the roadmap says `firmware/`/`webui/`; actual dirs are `esp32/`/`server-webui/`, so the compose webui build context must point at `../server-webui`). I have everything needed; here is the plan.
+Docker 29.6.1 + Compose v5.3.0 and Node 26.5.0 confirmed; no Java/Maven, as stated. Deployment configuration now lives at the repository root, with build contexts `./server` and `./webui`.
 
 ---
 
-# Phase 1 Implementation Plan â€” `server/` (Spring Boot 4.1) + `deploy/` (docker-compose + Mosquitto)
+# Phase 1 Implementation Plan â€” `server/` (Spring Boot 4.1) + root Compose/Mosquitto files
 
-Repo: `C:\Users\Izuki\Projects\SmartHomeController`. No Java/Maven on host â€” **every build, test, and run goes through Docker** (29.6.1, Compose v5.3.0). Node 26.5.0 is available on the host for the WebSocket watcher. `deploy/` does not exist yet and must be created. The Vue SPA lives in `server-webui/` (roadmap calls it `webui/`) â€” compose references `../server-webui`.
+Repo: `C:\Users\Izuki\Projects\SmartHomeController`. No Java/Maven on host â€” **every build, test, and run goes through Docker** (29.6.1, Compose v5.3.0). Node 26.5.0 is available on the host for the WebSocket watcher. Compose and its supporting configuration live at repository root.
 
 ## 1. Complete file tree
 
@@ -50,16 +50,11 @@ server/
       â”œâ”€ mqtt/TopicParserTest.java
       â””â”€ mqtt/DiscoveryPayloadTest.java  # JSON -> record mapping w/ Jackson 3
 
-deploy/
-â”œâ”€ docker-compose.yml
-â”œâ”€ .env.example
-â”œâ”€ .gitignore                      # .env
-â”œâ”€ README.md                       # setup + verification runbook
-â”œâ”€ mosquitto/
-â”‚  â”œâ”€ init-password.sh            # idempotent server credential initialization
-â”‚  â””â”€ mosquitto.conf
-â””â”€ nginx/
-   â””â”€ default.conf                 # SPA + /api + /ws reverse proxy
+compose.yml
+.env.example
+init-mqtt-password.sh               # idempotent server credential initialization
+mosquitto.conf
+nginx.conf                          # SPA + /api + /ws reverse proxy
 ```
 
 (`server-webui/Dockerfile` â€” node:26-alpine build â†’ nginx:alpine â€” belongs to the webui workstream; compose assumes it exists, sketch in Â§4.)
@@ -309,9 +304,9 @@ docker compose --profile tools run --rm mvn verify      # full check
 docker compose up -d --build server                     # rebuild+restart backend
 ```
 
-## 4. `deploy/` design
+## 4. Root deployment design
 
-### 4.1 `docker-compose.yml` (sketch)
+### 4.1 `compose.yml` (sketch)
 
 ```yaml
 services:
@@ -334,7 +329,7 @@ services:
       MQTT_SERVER_USERNAME: ${MQTT_SERVER_USERNAME}
       MQTT_SERVER_PASSWORD: ${MQTT_SERVER_PASSWORD}
     volumes:
-      - ./mosquitto/init-password.sh:/usr/local/bin/init-password.sh:ro
+      - ./init-mqtt-password.sh:/usr/local/bin/init-password.sh:ro
       - mosquitto-passwd:/mosquitto/passwd
     entrypoint: [ "sh", "/usr/local/bin/init-password.sh" ]
     restart: "no"
@@ -346,14 +341,14 @@ services:
       MQTT_SERVER_USERNAME: ${MQTT_SERVER_USERNAME}
       MQTT_SERVER_PASSWORD: ${MQTT_SERVER_PASSWORD}
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-data:/mosquitto/data
       - mosquitto-passwd:/mosquitto/passwd     # named volume: dodges Windows bind-mount perm warnings, keeps secrets off the repo tree
     depends_on:
       mosquitto-init: { condition: service_completed_successfully }
 
   server:
-    build: ../server
+    build: ./server
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DB_USER: ${POSTGRES_USER}
@@ -371,8 +366,8 @@ services:
       retries: 10
 
   webui:
-    build: ../server-webui                     # note: roadmap says webui/, actual dir is server-webui/
-    volumes: [ ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro ]  # tweak proxy w/o rebuild
+    build: ./webui
+    volumes: [ ./nginx.conf:/etc/nginx/conf.d/default.conf:ro ]  # tweak proxy w/o rebuild
     ports: [ "${WEBUI_PORT:-80}:80" ]
     depends_on: [ server ]
 
@@ -380,14 +375,14 @@ services:
     profiles: [ "tools" ]
     image: maven:3.9.11-eclipse-temurin-21
     working_dir: /workspace
-    volumes: [ "../server:/workspace", "m2cache:/root/.m2" ]
+    volumes: [ "./server:/workspace", "m2cache:/root/.m2" ]
     entrypoint: [ "mvn" ]
     command: [ "test" ]
 
 volumes: { pgdata: {}, mosquitto-data: {}, mosquitto-passwd: {}, m2cache: {} }
 ```
 
-### 4.2 `mosquitto/mosquitto.conf`
+### 4.2 `mosquitto.conf`
 
 ```
 listener 1883
@@ -409,9 +404,9 @@ Adding a **real** node user later (node_id known only after flashing â€” MA
 docker compose exec mosquitto mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-XXXXXX <password>
 docker compose kill -s SIGHUP mosquitto     # live reload of password file, no restart
 ```
-Both commands go in `deploy/README.md` as the documented operator flow. No ACL in Phase 1 (per spec) â€” any authenticated user can pub/sub anything.
+Both commands are documented in the root `README.md`. No ACL in Phase 1 (per spec) â€” any authenticated user can pub/sub anything.
 
-### 4.4 `.env.example` (real `.env` gitignored via `deploy/.gitignore`)
+### 4.4 `.env.example` (real root `.env` is gitignored)
 
 ```
 POSTGRES_DB=smarthome
@@ -422,7 +417,7 @@ MQTT_SERVER_PASSWORD=change-me-mqtt
 WEBUI_PORT=80
 ```
 
-### 4.5 `nginx/default.conf` â€” same-origin design **confirmed**
+### 4.5 `nginx.conf` â€” same-origin design **confirmed**
 
 Serving the SPA and proxying `/api` + `/ws` through one origin is the right call: zero CORS in production mode, one LAN URL (`http://<host>/`), and WebSocket/SockJS work without cross-origin handshake headaches. CORS-open on the backend remains only for the Vite dev-server workflow.
 
@@ -453,7 +448,7 @@ server {
 
 ## 5. Ordered implementation steps (each with a smoke test)
 
-1. **`deploy/` skeleton: postgres + mosquitto only** (compose, mosquitto.conf, .env/.env.example, automatic password initialization). *Smoke:* in-container `mosquitto_sub`/`mosquitto_pub` round-trip with the `server` user; anonymous pub must be **refused**; `docker compose exec postgres psql -U smarthome -c '\l'`.
+1. **Root deployment skeleton: postgres + mosquitto only** (compose, mosquitto.conf, .env/.env.example, automatic password initialization). *Smoke:* in-container `mosquitto_sub`/`mosquitto_pub` round-trip with the `server` user; anonymous pub must be **refused**; `docker compose exec postgres psql -U smarthome -c '\l'`.
 2. **Server skeleton**: pom.xml, Application class, application.yml, `V1__init.sql`, Dockerfile, .dockerignore; add `server` + `mvn` services to compose. *Smoke:* `docker compose up -d --build server` â†’ `wget`/curl `:8080/actuator/health` = UP; `psql -c '\d nodes'` shows Flyway-created tables + `flyway_schema_history`.
 3. **Entities + repositories + read-only REST** (`GET /nodes`, `GET /nodes/{id}`, ApiResponse, exception handler). *Smoke:* `curl /api/v1/nodes` â†’ `{"data":[],"error":null}`; unknown node â†’ 404 envelope. Also proves `ddl-auto: validate` agrees with V1 (catches INET/JSONB mapping mistakes at boot â€” decide the INET fallback here if needed).
 4. **MQTT inbound: discovery + status** (MqttConfig, TopicParser, MqttInboundHandler, NodeService upsert). *Smoke:* boot a real node, then `GET /nodes` shows it online with its capabilities; restart server â†’ retained replay repopulates.
@@ -462,7 +457,7 @@ server {
 7. **Outbound: MqttGateway + POST command endpoint.** *Smoke:* POST command and verify `GET /nodes` `lastState` does **not** change (state-topic-is-truth honored) until the node reports its state.
 8. **Telemetry endpoints** latest + history. *Smoke:* curl both, with and without `from`/`to`.
 9. **webui + nginx same-origin wiring** (compose service + default.conf; SPA build from webui workstream). *Smoke:* `http://localhost/` loads and `http://localhost/api/v1/nodes` proxies.
-10. **Full E2E run with real hardware** + `deploy/README.md` runbook + Conventional Commits throughout (`feat(server): ...`, `feat(deploy): ...`).
+10. **Full E2E run with real hardware** + root `README.md` runbook + Conventional Commits throughout.
 
 ## 6. Verification runbook
 
@@ -505,5 +500,5 @@ Complete the E2E sequence from the Web UI with a real node and verify relay stat
 - C:\Users\Izuki\Projects\SmartHomeController\server\pom.xml
 - C:\Users\Izuki\Projects\SmartHomeController\server\src\main\java\com\smarthome\server\config\MqttConfig.java
 - C:\Users\Izuki\Projects\SmartHomeController\server\src\main\java\com\smarthome\server\mqtt\MqttInboundHandler.java
-- C:\Users\Izuki\Projects\SmartHomeController\deploy\docker-compose.yml
+- C:\Users\Izuki\Projects\SmartHomeController\compose.yml
 - C:\Users\Izuki\Projects\SmartHomeController\server\src\main\resources\db\migration\V1__init.sql
