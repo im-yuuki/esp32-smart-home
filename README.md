@@ -53,3 +53,19 @@ docker compose kill -s SIGHUP mosquitto
 ## MQTT contract (invariant since Phase 1)
 
 Base topic `home/{room}/{node_id}/…` — see the roadmap §1.2/§1.3 for the full table (status/discovery/relay/sensor/cmd). Nodes self-register via a retained `discovery` JSON payload; the server upserts nodes/capabilities automatically.
+
+## Install ESP32-S3 firmware
+
+If you download the artifact built on GitHub Actions:
+
+1. Erase flash
+
+```sh
+esptool --chip esp32s3 --port /dev/cu.usbmodemXXXX erase-flash
+```
+
+2. Flash firmware
+
+```sh
+esptool --chip esp32s3 --port /dev/cu.usbmodemXXXX --baud 460800 --before default-reset --after hard-reset write-flash --flash-mode dio --flash-size 4MB --flash-freq 80m 0x0 bootloader/bootloader.bin 0x8000 partition_table/partition-table.bin 0x10000 smart_home_node.bin
+```
