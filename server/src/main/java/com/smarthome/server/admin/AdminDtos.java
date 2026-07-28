@@ -29,11 +29,12 @@ public final class AdminDtos {
     public record AssignRoleRequest(@NotNull Long roleId) {}
     public record MemberDto(Long userId, String username, String displayName,
                             Long roleId, String roleName) {}
-    public record AdminFolderDto(Long id, Long parentId, String name, String templateType,
-                                 @JsonRawValue String templateConfig, int sortOrder,
-                                 List<RoleDto> roles, List<MemberDto> members,
-                                 List<String> nodeIds) {}
-    public record SaveFolderRequest(Long parentId, @NotBlank String name, int sortOrder) {}
+    public record AdminFolderDto(Long id, Long parentId, String name, String icon, String templateType,
+                                  @JsonRawValue String templateConfig, int sortOrder,
+                                  List<RoleDto> roles, List<MemberDto> members,
+                                  List<String> nodeIds) {}
+    public record SaveFolderRequest(Long parentId, @NotBlank String name,
+                                    @Size(max = 100) String icon, int sortOrder) {}
     public record MoveFolderRequest(Long parentId) {}
     public record TemplateRequest(String templateType, String templateConfig) {}
 

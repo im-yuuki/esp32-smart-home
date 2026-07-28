@@ -6,6 +6,7 @@ export interface FolderDto {
   id: string
   parentId: string | null
   name: string
+  icon: string
   templateType: FolderTemplate
   templateConfig: Record<string, unknown>
   sortOrder: number
@@ -104,6 +105,7 @@ export interface FolderMembership {
 export interface FolderMutation {
   parentId: string | null
   name: string
+  icon: string
   templateType: FolderTemplate
   templateConfig: Record<string, unknown>
   sortOrder: number

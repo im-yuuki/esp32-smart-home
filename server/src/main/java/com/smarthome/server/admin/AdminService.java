@@ -125,6 +125,7 @@ public class AdminService {
         Folder folder = new Folder();
         folder.setParent(parent);
         folder.setName(name);
+        folder.setIcon(validFolderIcon(request.icon()));
         folder.setSortOrder(request.sortOrder());
         folder = folderRepository.saveAndFlush(folder);
         closureRepository.insertSelf(folder.getId());
@@ -145,6 +146,7 @@ public class AdminService {
         String name = UnicodeNames.normalize(request.name(), "folder name");
         ensureUniqueSibling(id, parent, name);
         folder.setName(name);
+        if (request.icon() != null) folder.setIcon(validFolderIcon(request.icon()));
         folder.setSortOrder(request.sortOrder());
         folder.setUpdatedAt(Instant.now());
         auditService.record(actor, "FOLDER_UPDATED", "FOLDER", id.toString(), "{}");
@@ -395,6 +397,12 @@ public class AdminService {
         String json = value == null || value.isBlank() ? "{}" : value;
         jsonMapper.readTree(json); return json;
     }
+    private static String validFolderIcon(String value) {
+        String icon = value == null || value.isBlank() ? "i-lucide-folder" : value.trim();
+        if (!icon.matches("i-lucide-[a-z0-9-]+"))
+            throw new ForbiddenException("invalid folder icon");
+        return icon;
+    }
     private static void validatePlacement(PlacementRequest request) {
         if (!Double.isFinite(request.x()) || !Double.isFinite(request.y())
                 || request.x() < 0 || request.x() > 100 || request.y() < 0 || request.y() > 100
@@ -415,7 +423,7 @@ public class AdminService {
         List<String> nodes = nodeRepository.findApprovedByFolderIdsWithDetails(List.of(folder.getId())).stream()
                 .map(Node::getNodeId).toList();
         return new AdminFolderDto(folder.getId(), folder.getParent() == null ? null : folder.getParent().getId(),
-                folder.getName(), folder.getTemplateType(), folder.getTemplateConfig(), folder.getSortOrder(),
+                folder.getName(), folder.getIcon(), folder.getTemplateType(), folder.getTemplateConfig(), folder.getSortOrder(),
                 roles, members, nodes);
     }
     private static RoleDto toRoleDto(FolderRole role) { return new RoleDto(role.getId(), role.getName(),

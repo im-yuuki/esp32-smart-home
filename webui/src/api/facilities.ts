@@ -28,6 +28,7 @@ export function mapFolder(raw: unknown): FolderDto {
     id: string(value.id),
     parentId: value.parentId == null ? null : string(value.parentId),
     name: string(value.name, string(value.id)),
+    icon: string(value.icon, 'i-lucide-folder'),
     templateType: ['OUTDOOR', 'BUILDING', 'FLOOR', 'CORRIDOR', 'ROOM'].includes(type) ? type as FolderDto['templateType'] : 'ROOM',
     templateConfig: config,
     sortOrder: number(value.sortOrder),
@@ -84,12 +85,12 @@ export function mapPlacement(raw: unknown): CapabilityPlacement | null {
 }
 
 export const mockFolders: FolderDto[] = [
-  { id: 'site', parentId: null, name: 'Khu nhà thông minh', templateType: 'OUTDOOR', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
-  { id: 'building-a', parentId: 'site', name: 'Tòa nhà A', templateType: 'BUILDING', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
-  { id: 'floor-1', parentId: 'building-a', name: 'Tầng trệt', templateType: 'FLOOR', templateConfig: { rooms: 3 }, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
-  { id: 'corridor-1', parentId: 'floor-1', name: 'Hành lang phía Đông', templateType: 'CORRIDOR', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL'] },
-  { id: 'room-living', parentId: 'floor-1', name: 'Phòng khách', templateType: 'ROOM', templateConfig: {}, sortOrder: 1, permissions: ['NODE_VIEW', 'NODE_CONTROL'] },
-  { id: 'room-bedroom', parentId: 'floor-1', name: 'Phòng ngủ', templateType: 'ROOM', templateConfig: {}, sortOrder: 2, permissions: ['NODE_VIEW'] },
+  { id: 'site', parentId: null, name: 'Khu nhà thông minh', icon: 'i-lucide-trees', templateType: 'OUTDOOR', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
+  { id: 'building-a', parentId: 'site', name: 'Tòa nhà A', icon: 'i-lucide-building-2', templateType: 'BUILDING', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
+  { id: 'floor-1', parentId: 'building-a', name: 'Tầng trệt', icon: 'i-lucide-layers-3', templateType: 'FLOOR', templateConfig: { rooms: 3 }, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL', 'AUDIT_VIEW'] },
+  { id: 'corridor-1', parentId: 'floor-1', name: 'Hành lang phía Đông', icon: 'i-lucide-route', templateType: 'CORRIDOR', templateConfig: {}, sortOrder: 0, permissions: ['NODE_VIEW', 'NODE_CONTROL'] },
+  { id: 'room-living', parentId: 'floor-1', name: 'Phòng khách', icon: 'i-lucide-sofa', templateType: 'ROOM', templateConfig: {}, sortOrder: 1, permissions: ['NODE_VIEW', 'NODE_CONTROL'] },
+  { id: 'room-bedroom', parentId: 'floor-1', name: 'Phòng ngủ', icon: 'i-lucide-bed-double', templateType: 'ROOM', templateConfig: {}, sortOrder: 2, permissions: ['NODE_VIEW'] },
 ]
 
 const mockDeviceTypes: DeviceType[] = [{ id: 'lighting', name: 'Lighting', icon: 'i-lucide-lightbulb' }, { id: 'fan', name: 'Fan', icon: 'i-lucide-fan' }, { id: 'sensor', name: 'Sensor', icon: 'i-lucide-gauge' }]

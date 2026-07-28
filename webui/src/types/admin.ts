@@ -26,6 +26,7 @@ export interface AdminFolder {
   id: string
   parentId: string | null
   name: string
+  icon: string
   templateType: import('./facility').FolderTemplate
   templateConfig: Record<string, unknown>
   sortOrder: number

@@ -33,6 +33,9 @@ public class Folder {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String icon = "i-lucide-folder";
+
     @Column(name = "template_type")
     private String templateType;
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FolderTree from './FolderTree.vue'
 import { useFacilitiesStore, type FolderTreeNode } from '@/stores/facilities'
@@ -13,7 +13,7 @@ const nodes = useNodesStore()
 const auth = useAuthStore()
 const { t } = useI18n()
 const query = ref('')
-const expanded = ref(new Set<string>())
+const collapsedIds = ref(new Set<string>())
 
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase()
 const filteredTree = computed(() => {
@@ -33,8 +33,28 @@ const nodeMatches = computed(() => {
     ...node.relays.flatMap((relay) => [relay.displayName, relay.name, relay.deviceType?.name, ...relay.tags.map((tag) => tag.name)]),
   ].filter(Boolean).join(' ')).includes(needle)).slice(0, 8)
 })
+const visibleTreeIds = (items: FolderTreeNode[]): string[] => items.flatMap((item) => [item.id, ...visibleTreeIds(item.children)])
+const expanded = computed(() => {
+  const ids = query.value.trim() ? visibleTreeIds(filteredTree.value) : facilities.folders.map((folder) => folder.id)
+  return new Set(ids.filter((id) => !collapsedIds.value.has(id) || Boolean(query.value.trim())))
+})
 
-function toggle(id: string) { const next = new Set(expanded.value); next.has(id) ? next.delete(id) : next.add(id); expanded.value = next }
+function storageKey() { return auth.user ? `facility-tree-collapsed:${auth.user.id}` : null }
+function saveTreeState() { const key = storageKey(); if (key) localStorage.setItem(key, JSON.stringify([...collapsedIds.value])) }
+function toggle(id: string) { const next = new Set(collapsedIds.value); next.has(id) ? next.delete(id) : next.add(id); collapsedIds.value = next; saveTreeState() }
+watch(() => auth.user?.id, () => {
+  const key = storageKey()
+  if (!key) { collapsedIds.value = new Set(); return }
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown
+    collapsedIds.value = new Set(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : [])
+  } catch { collapsedIds.value = new Set() }
+}, { immediate: true })
+watch(() => facilities.folders.map((folder) => folder.id).join(','), () => {
+  const valid = new Set(facilities.folders.map((folder) => folder.id))
+  const next = new Set([...collapsedIds.value].filter((id) => valid.has(id)))
+  if (next.size !== collapsedIds.value.size) { collapsedIds.value = next; saveTreeState() }
+})
 onMounted(() => { void facilities.load(); if (!nodes.loaded) void nodes.fetchNodes() })
 </script>
 
@@ -58,11 +78,10 @@ onMounted(() => { void facilities.load(); if (!nodes.loaded) void nodes.fetchNod
         </div>
       </template>
       <template v-else>
-        <RouterLink v-for="item in facilities.tree" :key="item.id" :to="`/browse/${item.id}`" class="mb-1 grid size-11 place-items-center rounded text-muted hover:bg-elevated hover:text-primary" :title="item.name"><UIcon name="i-lucide-building-2" class="size-5" /></RouterLink>
+        <RouterLink v-for="item in facilities.tree" :key="item.id" :to="`/browse/${item.id}`" class="mb-1 grid size-11 place-items-center rounded text-muted hover:bg-elevated hover:text-primary" :title="item.name"><UIcon :name="item.icon || 'i-lucide-folder'" class="size-5" /></RouterLink>
       </template>
     </nav>
     <div v-if="!collapsed" class="space-y-1 border-t border-default p-2">
-      <RouterLink v-if="auth.user?.systemAdmin || auth.user?.canViewAudit" to="/logs" class="nav-link" @click="emit('navigate')"><UIcon name="i-lucide-scroll-text" />{{ t('navigation.logs') }}</RouterLink>
       <RouterLink v-if="auth.user?.systemAdmin" to="/admin" class="nav-link" @click="emit('navigate')"><UIcon name="i-lucide-settings-2" />{{ t('header.admin') }}</RouterLink>
     </div>
   </aside>

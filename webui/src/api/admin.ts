@@ -47,6 +47,7 @@ export function mapAdminFolder(raw: unknown): AdminFolder {
     id: string(value.id),
     parentId: value.parentId == null ? null : string(value.parentId),
     name: string(value.name, string(value.id)),
+    icon: string(value.icon, 'i-lucide-folder'),
     templateType: ['OUTDOOR', 'BUILDING', 'FLOOR', 'CORRIDOR', 'ROOM'].includes(template) ? template as AdminFolder['templateType'] : 'ROOM',
     templateConfig: jsonObject(value.templateConfig),
     sortOrder: Number(value.sortOrder ?? 0),
@@ -89,7 +90,7 @@ export async function listAdminFolders(): Promise<AdminFolder[]> {
 }
 
 function folderMetadata(payload: FolderMutation) {
-  return { parentId: longId(payload.parentId), name: payload.name, sortOrder: payload.sortOrder }
+  return { parentId: longId(payload.parentId), name: payload.name, icon: payload.icon, sortOrder: payload.sortOrder }
 }
 
 function folderTemplate(payload: FolderMutation) {

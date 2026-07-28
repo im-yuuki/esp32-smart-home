@@ -15,7 +15,7 @@ import jakarta.validation.constraints.Size;
 public final class FolderDtos {
     private FolderDtos() {}
 
-    public record FolderDto(Long id, Long parentId, String name, String templateType,
+    public record FolderDto(Long id, Long parentId, String name, String icon, String templateType,
                             @JsonRawValue String templateConfig, int sortOrder,
                             Set<String> permissions) {}
 

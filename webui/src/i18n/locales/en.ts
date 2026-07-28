@@ -18,6 +18,7 @@ export default {
   browse: { facility: 'Facility', loading: 'Loading facility', loadFailed: 'Could not load facility', map: 'Map', list: 'List', mapLabel: 'Map of {folder}', deviceCount: '{count} devices in this folder', noDevices: 'No devices are assigned to this folder.', emptyTitle: 'This space is ready for devices', toggleDevice: 'Toggle {name}', pending: 'Pending' },
   bulk: { title: 'Bulk control', descendants: 'Include descendant folders', deviceTypes: 'Device types', tags: 'Tags', targetState: 'Target state', preview: 'Preview', confirm: 'Confirm action', eligible: 'Dispatchable', offline: 'Offline', skippedLabel: 'Skipped', total: 'Matched', queued: '{count} commands dispatched.', skipped: '{count} skipped.', failed: '{count} failed.', batch: 'Batch' },
   logs: { eyebrow: 'Operations trail', title: 'Audit logs', from: 'From', to: 'To', folder: 'Folder', allFolders: 'All folders', includeDescendants: 'Include descendant folders', action: 'Action', actor: 'Actor', node: 'Node ID', filter: 'Apply filters', time: 'Time', target: 'Target', trace: 'Batch / correlation', result: 'Result', batch: 'Batch', empty: 'No audit events match these filters.', total: '{count} events' },
+  activity: { eyebrow: 'Operations trail', title: 'System activity', label: 'Activity', refresh: 'Refresh activity', collapse: 'Collapse activity panel', loading: 'Loading activity...' },
   connection: {
     live: 'Live',
     connecting: 'Connecting...',
@@ -139,7 +140,7 @@ export default {
       NODE_CONTROL: 'Control nodes',
       TELEMETRY_VIEW: 'View telemetry',
     },
-    folders: { structure: 'Facility structure', edit: 'Edit folder', create: 'Create folder', untitled: 'Untitled folder', name: 'Unicode display name', parent: 'Parent folder', root: 'Root level', template: 'Map template', sortOrder: 'Sort order', confirmDelete: 'Delete this folder?' },
+    folders: { structure: 'Facility structure', edit: 'Edit folder', create: 'Create folder', untitled: 'Untitled folder', name: 'Unicode display name', parent: 'Parent folder', root: 'Root level', icon: 'Folder icon', iconDescription: 'Used in the explorer independently from the map template.', template: 'Map template', templateDescription: 'Only controls how the facility map is rendered.', sortOrder: 'Sort order', confirmDelete: 'Delete this folder?' },
     access: { folder: 'Folder scope', roles: 'Folder roles', roleName: 'Role name', createRole: 'Create role', memberships: 'Members', user: 'User', role: 'Role', assign: 'Assign member', nodes: '{count} directly assigned nodes' },
   },
   rooms: {

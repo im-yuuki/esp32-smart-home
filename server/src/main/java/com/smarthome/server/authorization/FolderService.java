@@ -203,7 +203,7 @@ public class FolderService {
 
     private static FolderDto toDto(Folder folder, Set<String> permissions) {
         return new FolderDto(folder.getId(), folder.getParent() == null ? null : folder.getParent().getId(),
-                folder.getName(), folder.getTemplateType(), folder.getTemplateConfig(),
+                folder.getName(), folder.getIcon(), folder.getTemplateType(), folder.getTemplateConfig(),
                 folder.getSortOrder(), permissions);
     }
 

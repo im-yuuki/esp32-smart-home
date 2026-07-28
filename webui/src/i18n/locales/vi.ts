@@ -18,6 +18,7 @@ export default {
   browse: { facility: 'Khu vực', loading: 'Đang tải khu vực', loadFailed: 'Không thể tải khu vực', map: 'Bản đồ', list: 'Danh sách', mapLabel: 'Bản đồ {folder}', deviceCount: '{count} thiết bị trong khu vực', noDevices: 'Chưa có thiết bị được gán vào khu vực này.', emptyTitle: 'Khu vực đã sẵn sàng nhận thiết bị', toggleDevice: 'Chuyển trạng thái {name}', pending: 'Đang chờ' },
   bulk: { title: 'Điều khiển hàng loạt', descendants: 'Bao gồm các thư mục con', deviceTypes: 'Loại thiết bị', tags: 'Thẻ', targetState: 'Trạng thái đích', preview: 'Xem trước', confirm: 'Xác nhận thao tác', eligible: 'Có thể gửi', offline: 'Ngoại tuyến', skippedLabel: 'Bỏ qua', total: 'Phù hợp', queued: 'Đã gửi {count} lệnh.', skipped: 'Bỏ qua {count} mục.', failed: '{count} mục thất bại.', batch: 'Lô' },
   logs: { eyebrow: 'Dấu vết vận hành', title: 'Nhật ký kiểm toán', from: 'Từ thời điểm', to: 'Đến thời điểm', folder: 'Thư mục', allFolders: 'Tất cả thư mục', includeDescendants: 'Bao gồm các thư mục con', action: 'Hành động', actor: 'Người thực hiện', node: 'Node ID', filter: 'Lọc dữ liệu', time: 'Thời gian', target: 'Đối tượng', trace: 'Lô / tương quan', result: 'Kết quả', batch: 'Lô', empty: 'Không có sự kiện phù hợp bộ lọc.', total: '{count} sự kiện' },
+  activity: { eyebrow: 'Dấu vết vận hành', title: 'Hoạt động hệ thống', label: 'Hoạt động', refresh: 'Làm mới hoạt động', collapse: 'Thu gọn bảng hoạt động', loading: 'Đang tải hoạt động...' },
   connection: {
     live: 'Trực tuyến',
     connecting: 'Đang kết nối...',
@@ -139,7 +140,7 @@ export default {
       NODE_CONTROL: 'Điều khiển node',
       TELEMETRY_VIEW: 'Xem dữ liệu cảm biến',
     },
-    folders: { structure: 'Cấu trúc cơ sở', edit: 'Chỉnh sửa thư mục', create: 'Tạo thư mục', untitled: 'Thư mục chưa đặt tên', name: 'Tên hiển thị Unicode', parent: 'Thư mục cha', root: 'Cấp gốc', template: 'Mẫu bản đồ', sortOrder: 'Thứ tự sắp xếp', confirmDelete: 'Xóa thư mục này?' },
+    folders: { structure: 'Cấu trúc cơ sở', edit: 'Chỉnh sửa thư mục', create: 'Tạo thư mục', untitled: 'Thư mục chưa đặt tên', name: 'Tên hiển thị Unicode', parent: 'Thư mục cha', root: 'Cấp gốc', icon: 'Biểu tượng thư mục', iconDescription: 'Dùng trong cây điều hướng, độc lập với mẫu bản đồ.', template: 'Mẫu bản đồ', templateDescription: 'Chỉ quyết định cách hiển thị sơ đồ khu vực.', sortOrder: 'Thứ tự sắp xếp', confirmDelete: 'Xóa thư mục này?' },
     access: { folder: 'Phạm vi thư mục', roles: 'Vai trò theo thư mục', roleName: 'Tên vai trò', createRole: 'Tạo vai trò', memberships: 'Thành viên', user: 'Người dùng', role: 'Vai trò', assign: 'Gán thành viên', nodes: '{count} node được gán trực tiếp' },
   },
   rooms: {

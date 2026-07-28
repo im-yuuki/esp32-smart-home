@@ -13,10 +13,10 @@ Nodes never talk to the web UI directly. The backend is the only server-side MQT
 ## Facility management
 
 - Every approved node belongs to exactly one folder. Folder permissions inherit to descendants.
-- Folders can use `OUTDOOR`, `BUILDING`, `FLOOR`, `CORRIDOR`, or `ROOM` map presets.
+- Folders have independent explorer icons and can use `OUTDOOR`, `BUILDING`, `FLOOR`, `CORRIDOR`, or `ROOM` map presets.
 - Node and capability display names support normalized Unicode and are not overwritten by discovery.
 - Relay capabilities can be classified and tagged, then controlled in bulk for the current folder or its subtree.
-- Every control request and dispatch result is audited. `AUDIT_VIEW` grants scoped access to logs.
+- Every control request and dispatch result is audited. `AUDIT_VIEW` grants scoped access through the global activity bar.
 - Existing flat groups are migrated to folders by Flyway V3. A node that belonged to multiple groups receives a dedicated import folder whose generated roles preserve the old effective permissions.
 
 ## Layout

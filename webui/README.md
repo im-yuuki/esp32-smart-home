@@ -56,6 +56,10 @@ subscription, so stores/components behave identically in both modes.
   The initial language follows the browser, the header switcher persists the
   choice under `smarthome.locale`, and the same locale is passed to Nuxt UI,
   date, relative-time and number formatters.
+- **Facility explorer**: folder icons are separate from map templates. The tree opens
+  by default and persists collapsed branches per account in local storage. Users with
+  `AUDIT_VIEW` access audit history from the expandable activity bar at the bottom of
+  the authenticated shell.
 - **Chart**: direct `echarts/core` modular imports via `useECharts`
   (init/ResizeObserver/dispose), time axis, dual y (°C / %), `lttb` sampling,
   `dataZoom: inside` for pinch zoom, live-appends `SENSOR_STATE` events.
