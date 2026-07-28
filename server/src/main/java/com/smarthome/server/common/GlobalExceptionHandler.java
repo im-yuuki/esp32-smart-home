@@ -64,6 +64,12 @@ public class GlobalExceptionHandler {
         return ApiResponse.error("BAD_REQUEST", "malformed request body");
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> badArgument(IllegalArgumentException e) {
+        return ApiResponse.error("VALIDATION_ERROR", e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> internal(Exception e) {

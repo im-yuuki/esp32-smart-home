@@ -8,6 +8,19 @@ import ui from '@nuxt/ui/vite'
 export default defineConfig({
   plugins: [vue(), ui()],
 
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: 'chart-renderer', test: /node_modules[\\/]zrender[\\/]/ },
+            { name: 'charts', test: /node_modules[\\/]echarts[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
+
   // sockjs-client references the Node-style `global` at import time
   define: { global: 'window' },
 

@@ -14,6 +14,7 @@ import com.smarthome.server.common.ForbiddenException;
 import com.smarthome.server.common.NotFoundException;
 import com.smarthome.server.common.UnauthenticatedException;
 import com.smarthome.server.security.SessionPrincipal;
+import com.smarthome.server.device.NodeRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 public class AuthorizationService {
 
     private final AppUserRepository userRepository;
-    private final GroupMembershipRepository membershipRepository;
-    private final NodeGroupMembershipRepository nodeGroupMembershipRepository;
+    private final FolderMembershipRepository membershipRepository;
+    private final NodeRepository nodeRepository;
 
     @Transactional(readOnly = true)
     public AppUser currentUser() {
@@ -63,27 +64,54 @@ public class AuthorizationService {
     }
 
     @Transactional(readOnly = true)
-    public List<GroupAccess> groupsFor(AppUser user) {
-        return membershipRepository.findByUserIdOrderByGroupName(user.getId()).stream()
-                .map(m -> new GroupAccess(m.getGroup().getId(), m.getGroup().getName(), m.getRole().getName()))
+    public List<FolderAccess> foldersFor(AppUser user) {
+        return membershipRepository.findByUserIdOrderByFolderName(user.getId()).stream()
+                .map(m -> new FolderAccess(m.getFolder().getId(), m.getFolder().getName(),
+                        m.getRole().getName()))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Set<String> permissionsForNode(AppUser user, String nodeId) {
         if (user.isSystemAdmin()) {
-            return Set.of(Permission.NODE_VIEW, Permission.NODE_CONTROL, Permission.TELEMETRY_VIEW);
+            return Set.of(Permission.NODE_VIEW, Permission.NODE_CONTROL, Permission.TELEMETRY_VIEW,
+                    Permission.AUDIT_VIEW);
         }
-        return Set.copyOf(nodeGroupMembershipRepository.findPermissionCodes(user.getId(), nodeId));
+        Long folderId = nodeRepository.findFolderIdByNodeId(nodeId)
+                .orElseThrow(() -> new NotFoundException("node %s not found".formatted(nodeId)));
+        return permissionsForFolder(user, folderId);
     }
 
     @Transactional(readOnly = true)
     public void requireNodePermission(AppUser user, String nodeId, String permission) {
-        if (!user.isSystemAdmin()
-                && !nodeGroupMembershipRepository.hasPermission(user.getId(), nodeId, permission)) {
+        Long folderId = nodeRepository.findFolderIdByNodeId(nodeId)
+                .orElseThrow(() -> new NotFoundException("node %s not found".formatted(nodeId)));
+        if (!user.isSystemAdmin() && !membershipRepository.hasPermission(user.getId(), folderId, permission)) {
             throw new NotFoundException("node %s not found".formatted(nodeId));
         }
     }
 
-    public record GroupAccess(Long id, String name, String roleName) {}
+    @Transactional(readOnly = true)
+    public Set<String> permissionsForFolder(AppUser user, Long folderId) {
+        if (user.isSystemAdmin()) {
+            return Set.of(Permission.NODE_VIEW, Permission.NODE_CONTROL, Permission.TELEMETRY_VIEW,
+                    Permission.AUDIT_VIEW);
+        }
+        return Set.copyOf(membershipRepository.findPermissionCodes(user.getId(), folderId));
+    }
+
+    @Transactional(readOnly = true)
+    public void requireFolderPermission(AppUser user, Long folderId, String permission) {
+        if (!user.isSystemAdmin() && !membershipRepository.hasPermission(user.getId(), folderId, permission)) {
+            throw new NotFoundException("folder %d not found".formatted(folderId));
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasAnyAuditAccess(AppUser user) {
+        return user.isSystemAdmin() || foldersFor(user).stream().anyMatch(folder ->
+                membershipRepository.hasPermission(user.getId(), folder.id(), Permission.AUDIT_VIEW));
+    }
+
+    public record FolderAccess(Long id, String name, String roleName) {}
 }

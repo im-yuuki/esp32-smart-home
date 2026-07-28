@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import com.smarthome.server.account.AppUserRepository;
-import com.smarthome.server.authorization.NodeGroupMembershipRepository;
+import com.smarthome.server.authorization.FolderMembershipRepository;
 import com.smarthome.server.authorization.Permission;
 import com.smarthome.server.device.ApprovalStatus;
 import com.smarthome.server.device.NodeRepository;
@@ -25,7 +25,7 @@ class StatePublisherAuthorizationTest {
     void sensorEventsRequireTelemetryPermissionAndDeduplicateRecipients() {
         SimpMessagingTemplate template = mock(SimpMessagingTemplate.class);
         NodeRepository nodeRepository = mock(NodeRepository.class);
-        NodeGroupMembershipRepository memberships = mock(NodeGroupMembershipRepository.class);
+        FolderMembershipRepository memberships = mock(FolderMembershipRepository.class);
         AppUserRepository users = mock(AppUserRepository.class);
         StatePublisher publisher = new StatePublisher(template, nodeRepository, memberships, users);
         when(nodeRepository.existsByNodeIdAndApprovalStatus("node-1", ApprovalStatus.APPROVED))

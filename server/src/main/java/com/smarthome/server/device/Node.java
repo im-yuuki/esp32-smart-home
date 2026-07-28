@@ -23,6 +23,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import com.smarthome.server.account.AppUser;
+import com.smarthome.server.authorization.Folder;
 
 @Entity
 @Table(name = "nodes")
@@ -39,6 +40,16 @@ public class Node {
 
     @Column(nullable = false)
     private String room;
+
+    @Column(name = "discovery_name")
+    private String discoveryName;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "folder_id", nullable = false)
+    private Folder folder;
 
     @Column(name = "fw_version")
     private String fwVersion;

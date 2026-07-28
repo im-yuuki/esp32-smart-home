@@ -16,6 +16,7 @@ public class Permission {
     public static final String NODE_VIEW = "NODE_VIEW";
     public static final String NODE_CONTROL = "NODE_CONTROL";
     public static final String TELEMETRY_VIEW = "TELEMETRY_VIEW";
+    public static final String AUDIT_VIEW = "AUDIT_VIEW";
 
     @Id
     @Column(nullable = false)

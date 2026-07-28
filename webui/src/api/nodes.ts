@@ -7,6 +7,9 @@ import type {
   RelayChannel,
   SensorMeta,
   SensorReading,
+  DeviceType,
+  Tag,
+  CapabilityInfo,
 } from '@/types/api'
 import { isoToMs, secondsToMs } from '@/utils/time'
 
@@ -16,7 +19,7 @@ import { isoToMs, secondsToMs } from '@/utils/time'
 
 /** `meta` / `lastState` arrive as raw JSON values; parse defensively (they may
  *  be objects, JSON strings, or null depending on serializer behavior). */
-function asObject(value: unknown): Record<string, unknown> | null {
+export function asObject(value: unknown): Record<string, unknown> | null {
   if (value == null) return null
   if (typeof value === 'string') {
     try {
@@ -34,13 +37,52 @@ function asObject(value: unknown): Record<string, unknown> | null {
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
 const num = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isFinite(v) ? v : undefined
+const id = (v: unknown): string | undefined =>
+  typeof v === 'string' || typeof v === 'number' ? String(v) : undefined
+
+function mapDeviceType(value: unknown): DeviceType | null {
+  if (typeof value === 'string') return { id: value, name: value }
+  const item = asObject(value)
+  const itemId = id(item?.id)
+  if (!itemId) return null
+  return { id: itemId, name: str(item?.name) ?? itemId, icon: str(item?.icon), description: str(item?.description) }
+}
+
+function mapTags(value: unknown): Tag[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((raw) => {
+    if (typeof raw === 'string') return [{ id: raw, name: raw }]
+    const item = asObject(raw)
+    const itemId = id(item?.id)
+    return itemId ? [{ id: itemId, name: str(item?.name) ?? itemId, color: str(item?.color) }] : []
+  })
+}
+
+function mapCapability(cap: CapabilityDto, index: number): CapabilityInfo {
+  return {
+    id: id(cap.id) ?? `${cap.type}:${cap.channel}:${index}`,
+    type: cap.type,
+    channel: cap.channel,
+    discoveryName: cap.discoveryName ?? '',
+    displayName: cap.displayName ?? null,
+    deviceType: mapDeviceType(cap.deviceType),
+    tags: mapTags(cap.tags),
+    meta: asObject(cap.meta),
+    lastState: asObject(cap.lastState),
+  }
+}
 
 function mapRelay(cap: CapabilityDto): RelayChannel {
   const last = asObject(cap.lastState)
   const state = last?.state === 'ON' || last?.state === 'OFF' ? last.state : 'UNKNOWN'
   return {
+    id: id(cap.id),
     channel: cap.channel,
-    name: cap.name || '',
+    name: cap.discoveryName || '',
+    discoveryName: cap.discoveryName || '',
+    displayName: cap.displayName ?? null,
+    deviceType: mapDeviceType(cap.deviceType),
+    tags: mapTags(cap.tags),
     state,
     source: str(last?.source),
     pending: false,
@@ -78,6 +120,7 @@ export function mapNodeDto(dto: NodeDto): NodeInfo {
   let sensorMeta: SensorMeta | undefined
   let sensor: SensorReading | null = null
 
+  const capabilities = (dto.capabilities ?? []).map(mapCapability)
   for (const cap of dto.capabilities ?? []) {
     if (cap.type === 'relay') {
       relays.push(mapRelay(cap))
@@ -92,7 +135,10 @@ export function mapNodeDto(dto: NodeDto): NodeInfo {
 
   return {
     nodeId: dto.nodeId,
+    displayName: dto.displayName ?? null,
+    discoveryName: dto.discoveryName ?? null,
     room: dto.room,
+    folderId: dto.folderId == null ? null : String(dto.folderId),
     fwVersion: dto.fwVersion ?? undefined,
     ip: dto.ip ?? undefined,
     online: dto.online,
@@ -101,8 +147,8 @@ export function mapNodeDto(dto: NodeDto): NodeInfo {
     hasSensor,
     sensorMeta,
     sensor,
-    groupIds: dto.groupIds ?? [],
     permissions: dto.permissions ?? [],
+    capabilities,
   }
 }
 

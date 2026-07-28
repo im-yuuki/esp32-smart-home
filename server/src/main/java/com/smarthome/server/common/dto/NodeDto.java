@@ -6,12 +6,14 @@ import java.util.Set;
 
 public record NodeDto(
         String nodeId,
+        String displayName,
+        String discoveryName,
         String room,
         String fwVersion,
         String ip,
         boolean online,
         Instant lastSeen,
         List<CapabilityDto> capabilities,
-        List<Long> groupIds,
+        Long folderId,
         Set<String> permissions) {
 }

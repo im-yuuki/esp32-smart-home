@@ -6,6 +6,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.smarthome.server.account.AppUser;
+import com.smarthome.server.authorization.Folder;
+import com.smarthome.server.device.Capability;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +43,24 @@ public class AuditLog {
 
     @Column(name = "target_id")
     private String targetId;
+
+    @Column(name = "correlation_id")
+    private String correlationId;
+
+    @Column(name = "batch_id")
+    private String batchId;
+
+    @JdbcTypeCode(SqlTypes.INET)
+    @Column(columnDefinition = "inet")
+    private String ip;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "capability_id")
+    private Capability capability;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private Folder folder;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")

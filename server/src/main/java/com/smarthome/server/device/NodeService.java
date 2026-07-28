@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,11 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import com.smarthome.server.account.AppUser;
 import com.smarthome.server.audit.AuditService;
 import com.smarthome.server.authorization.AuthorizationService;
-import com.smarthome.server.authorization.NodeGroupMembershipRepository;
+import com.smarthome.server.authorization.Folder;
+import com.smarthome.server.authorization.FolderRepository;
 import com.smarthome.server.authorization.Permission;
 import com.smarthome.server.common.NotFoundException;
 import com.smarthome.server.common.dto.CapabilityDto;
 import com.smarthome.server.common.dto.NodeDto;
+import com.smarthome.server.common.UnicodeNames;
 import com.smarthome.server.mqtt.DiscoveryPayload;
 import com.smarthome.server.mqtt.MqttGateway;
 
@@ -37,7 +40,7 @@ public class NodeService {
     private final MqttGateway mqttGateway;
     private final JsonMapper jsonMapper;
     private final AuthorizationService authorizationService;
-    private final NodeGroupMembershipRepository nodeGroupMembershipRepository;
+    private final FolderRepository folderRepository;
     private final AuditService auditService;
 
     // ------------------------------------------------------------------ queries
@@ -74,6 +77,8 @@ public class NodeService {
             Node stub = new Node();
             stub.setNodeId(nodeId);
             stub.setRoom(room);
+            stub.setDiscoveryName(nodeId);
+            stub.setFolder(defaultFolder());
             return stub;
         });
         node.setOnline(online);
@@ -93,6 +98,8 @@ public class NodeService {
         Node node = nodeRepository.findWithCapabilitiesByNodeId(payload.nodeId()).orElseGet(() -> {
             Node created = new Node();
             created.setNodeId(payload.nodeId());
+            created.setDiscoveryName(payload.nodeId());
+            created.setFolder(defaultFolder());
             return created;
         });
         node.setRoom(payload.room() != null ? payload.room() : topicRoom);
@@ -123,7 +130,8 @@ public class NodeService {
                         node.getCapabilities().add(created);
                         return created;
                     });
-            capability.setName(raw.get("name") instanceof String name ? name : null);
+            capability.setDiscoveryName(raw.get("name") instanceof String name
+                    ? UnicodeNames.normalize(name, "capability discoveryName") : null);
             capability.setMeta(extractMeta(raw));
             // last_state deliberately preserved
         }
@@ -167,10 +175,22 @@ public class NodeService {
         }
         String topic = "home/%s/%s/relay/%d/set".formatted(node.getRoom(), nodeId, channel);
         String payload = "{\"state\":\"%s\"}".formatted(state);
-        mqttGateway.publish(topic, payload);
-        log.info("command published to {}: {}", topic, payload);
-        auditService.record(user, "RELAY_COMMAND", "NODE", nodeId,
-                jsonMapper.createObjectNode().put("channel", channel).put("state", state).toString());
+        Capability relay = node.getCapabilities().stream()
+                .filter(c -> "relay".equals(c.getType()) && c.getChannel() == channel)
+                .findFirst().orElseThrow();
+        String correlationId = UUID.randomUUID().toString();
+        String details = jsonMapper.createObjectNode().put("channel", channel).put("state", state).toString();
+        auditService.recordControl(user, "CONTROL_REQUESTED", nodeId, details, correlationId, null, relay);
+        try {
+            mqttGateway.publish(topic, payload);
+            auditService.recordControl(user, "CONTROL_DISPATCHED", nodeId, details,
+                    correlationId, null, relay);
+            log.info("command published to {}: {}", topic, payload);
+        } catch (RuntimeException exception) {
+            auditService.recordControl(user, "CONTROL_FAILED", nodeId, details,
+                    correlationId, null, relay);
+            throw exception;
+        }
     }
 
     // ------------------------------------------------------------------ helpers
@@ -196,19 +216,29 @@ public class NodeService {
         return jsonMapper.writeValueAsString(meta);
     }
 
-    private NodeDto toDto(Node node, AppUser user) {
+    public NodeDto toDto(Node node, AppUser user) {
         Set<String> permissions = authorizationService.permissionsForNode(user, node.getNodeId());
         List<CapabilityDto> capabilities = node.getCapabilities().stream()
                 .filter(c -> !"sensor".equals(c.getType())
                         || permissions.contains(Permission.TELEMETRY_VIEW))
                 .sorted(Comparator.comparing(Capability::getType)
                         .thenComparingInt(Capability::getChannel))
-                .map(c -> new CapabilityDto(c.getType(), c.getChannel(), c.getName(),
-                        c.getMeta(), c.getLastState()))
+                .map(c -> new CapabilityDto(c.getId(), c.getType(), c.getChannel(),
+                        c.getDisplayName(), c.getDiscoveryName(),
+                        c.getDeviceType() == null ? null : new CapabilityDto.DeviceTypeDto(
+                                c.getDeviceType().getId(), c.getDeviceType().getName(),
+                                c.getDeviceType().getDescription()),
+                        c.getTags().stream().sorted(Comparator.comparing(Tag::getName))
+                                .map(tag -> new CapabilityDto.TagDto(tag.getId(), tag.getName(), tag.getColor()))
+                                .toList(), c.getMeta(), c.getLastState()))
                 .toList();
-        return new NodeDto(node.getNodeId(), node.getRoom(), node.getFwVersion(), node.getIp(),
-                node.isOnline(), node.getLastSeen(), capabilities,
-                nodeGroupMembershipRepository.findGroupIdsByNodeId(node.getNodeId()),
-                permissions);
+        return new NodeDto(node.getNodeId(), node.getDisplayName(), node.getDiscoveryName(),
+                node.getRoom(), node.getFwVersion(), node.getIp(), node.isOnline(), node.getLastSeen(),
+                capabilities, node.getFolder().getId(), permissions);
+    }
+
+    private Folder defaultFolder() {
+        return folderRepository.findRootByNameIgnoreCase("Chưa phân loại")
+                .orElseThrow(() -> new IllegalStateException("default folder is missing"));
     }
 }

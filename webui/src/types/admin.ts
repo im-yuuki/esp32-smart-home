@@ -9,7 +9,7 @@ export interface AdminUser {
 }
 
 export interface AdminRole {
-  id: number
+  id: string
   name: string
   permissions: string[]
 }
@@ -18,14 +18,17 @@ export interface AdminMember {
   userId: number
   username: string
   displayName: string
-  roleId: number
+  roleId: string
   roleName: string
 }
 
-export interface AdminGroup {
-  id: number
+export interface AdminFolder {
+  id: string
+  parentId: string | null
   name: string
-  description: string | null
+  templateType: import('./facility').FolderTemplate
+  templateConfig: Record<string, unknown>
+  sortOrder: number
   roles: AdminRole[]
   members: AdminMember[]
   nodeIds: string[]
@@ -33,11 +36,13 @@ export interface AdminGroup {
 
 export interface AdminNode {
   nodeId: string
+  discoveryName: string
+  displayName?: string | null
   room: string
+  folderId?: string | null
   fwVersion: string | null
   ip: string | null
   online: boolean
   createdAt: string
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
-  groupIds: number[]
 }

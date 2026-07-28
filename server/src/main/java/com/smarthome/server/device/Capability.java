@@ -1,5 +1,8 @@
 package com.smarthome.server.device;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -11,6 +14,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -45,7 +50,21 @@ public class Capability {
     @Column(nullable = false)
     private int channel;
 
-    private String name;
+    @Column(name = "discovery_name")
+    private String discoveryName;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_type_id")
+    private DeviceType deviceType;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "capability_tags",
+            joinColumns = @JoinColumn(name = "capability_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    private Set<Tag> tags = new HashSet<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)

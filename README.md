@@ -1,6 +1,6 @@
 # Smart Home ESP32-S3
 
-Multi-room smart-home system: ESP32-S3 nodes (relays + sensors) connect over WiFi/MQTT to a central server with a realtime web UI. The management server provides accounts, node approval, multi-group RBAC, and per-user realtime events without sending user or permission data to ESP32 nodes.
+Multi-room smart-home system: ESP32-S3 nodes (relays + sensors) connect over WiFi/MQTT to a central server with a realtime web UI. The management server provides accounts, node approval, inherited folder-tree RBAC, visual area maps, bulk controls, audit logs, and per-user realtime events without sending user or permission data to ESP32 nodes.
 
 ```
 [Vue SPA] ⇄ REST + WebSocket ⇄ [Spring Boot] ⇄ MQTT ⇄ [Mosquitto] ⇄ MQTT ⇄ [ESP32-S3 nodes]
@@ -8,7 +8,16 @@ Multi-room smart-home system: ESP32-S3 nodes (relays + sensors) connect over WiF
                                 [PostgreSQL]
 ```
 
-Nodes never talk to the web UI directly. The backend is the only server-side MQTT client; state topics are the single source of truth (the server never infers state from commands it sent).
+Nodes never talk to the web UI directly. The backend is the only server-side MQTT client; state topics are the single source of truth (the server never infers state from commands it sent). Unicode display names, folders, semantic device types, tags, and map placements are server-side metadata, so firmware identifiers and MQTT topics remain stable.
+
+## Facility management
+
+- Every approved node belongs to exactly one folder. Folder permissions inherit to descendants.
+- Folders can use `OUTDOOR`, `BUILDING`, `FLOOR`, `CORRIDOR`, or `ROOM` map presets.
+- Node and capability display names support normalized Unicode and are not overwritten by discovery.
+- Relay capabilities can be classified and tagged, then controlled in bulk for the current folder or its subtree.
+- Every control request and dispatch result is audited. `AUDIT_VIEW` grants scoped access to logs.
+- Existing flat groups are migrated to folders by Flyway V3. A node that belonged to multiple groups receives a dedicated import folder whose generated roles preserve the old effective permissions.
 
 ## Layout
 

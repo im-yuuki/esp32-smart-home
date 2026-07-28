@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { NODE_CONTROL, type NodeInfo, type RelayState } from '@/types/api'
 import type { ServerEvent } from '@/types/events'
 import { listNodes, sendRelayCommand as postRelayCommand } from '@/api/nodes'
 import { localizedError } from '@/i18n/errors'
 import { i18n } from '@/i18n'
-import { roomCompare } from '@/utils/rooms'
 import { useRealtimeStore } from './realtime'
 
 const COMMAND_TIMEOUT_MS = 5_000
@@ -50,7 +49,6 @@ export const useNodesStore = defineStore('nodes', () => {
   const loading = ref(false)
   const loaded = ref(false)
   const loadError = ref<string | null>(null)
-  const selectedGroupId = ref<number | null>(null)
 
   const realtime = useRealtimeStore()
 
@@ -62,28 +60,42 @@ export const useNodesStore = defineStore('nodes', () => {
 
   // ------------------------------------------------------------------ getters
 
-  const nodesByRoom = computed<Array<[string, NodeInfo[]]>>(() => {
-    const rooms = new Map<string, NodeInfo[]>()
-    for (const node of nodes.value.values()) {
-      if (selectedGroupId.value !== null && !node.groupIds.includes(selectedGroupId.value)) continue
-      const list = rooms.get(node.room)
-      if (list) list.push(node)
-      else rooms.set(node.room, [node])
-    }
-    for (const list of rooms.values()) {
-      list.sort((a, b) => a.nodeId.localeCompare(b.nodeId))
-    }
-    return [...rooms.entries()].sort((a, b) =>
-      roomCompare(a[0], b[0], i18n.global.locale.value, (key) => i18n.global.t(key)),
-    )
-  })
-
   function nodeById(nodeId: string): NodeInfo | undefined {
     return nodes.value.get(nodeId)
   }
 
   function findRelay(nodeId: string, channel: number) {
     return nodes.value.get(nodeId)?.relays.find((r) => r.channel === channel)
+  }
+
+  function preserveRealtimeState(node: NodeInfo, existing: NodeInfo | undefined): void {
+    if (existing) {
+      node.online = existing.online
+      node.lastSeen = existing.lastSeen
+      node.sensor = existing.sensor
+      for (const relay of node.relays) {
+        const currentRelay = existing.relays.find((item) => item.channel === relay.channel)
+        if (!currentRelay) continue
+        relay.state = currentRelay.state
+        relay.source = currentRelay.source
+        relay.pending = currentRelay.pending
+      }
+    }
+    for (const relay of node.relays) {
+      if (pendingMap.has(keyOf(node.nodeId, relay.channel))) relay.pending = true
+    }
+  }
+
+  /** Merge folder-map DTOs so their fresh metadata wins while WS state and the
+   * local pending state machine remain authoritative. */
+  function mergeNodes(list: NodeInfo[]): void {
+    const map = new Map(nodes.value)
+    for (const node of list) {
+      preserveRealtimeState(node, map.get(node.nodeId))
+      map.set(node.nodeId, node)
+    }
+    nodes.value = map
+    loaded.value = true
   }
 
   // ------------------------------------------------------------------ actions
@@ -106,17 +118,7 @@ export const useNodesStore = defineStore('nodes', () => {
         for (const node of list) {
           const existing = nodes.value.get(node.nodeId)
           if (existing && (eventRevisions.get(node.nodeId) ?? 0) !== (revisionsAtStart.get(node.nodeId) ?? 0)) {
-            node.online = existing.online
-            node.lastSeen = existing.lastSeen
-            node.sensor = existing.sensor
-            for (const relay of node.relays) {
-              const currentRelay = existing.relays.find((item) => item.channel === relay.channel)
-              if (currentRelay) {
-                relay.state = currentRelay.state
-                relay.source = currentRelay.source
-                relay.pending = currentRelay.pending
-              }
-            }
+            preserveRealtimeState(node, existing)
           }
           map.set(node.nodeId, node)
         }
@@ -287,7 +289,6 @@ export const useNodesStore = defineStore('nodes', () => {
     loading.value = false
     loaded.value = false
     loadError.value = null
-    selectedGroupId.value = null
     fetchInFlight = null
   }
 
@@ -296,10 +297,9 @@ export const useNodesStore = defineStore('nodes', () => {
     loading,
     loaded,
     loadError,
-    selectedGroupId,
-    nodesByRoom,
     nodeById,
     fetchNodes,
+    mergeNodes,
     sendRelayCommand,
     applyEvent,
     can,

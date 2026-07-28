@@ -8,11 +8,16 @@ export default {
     retry: 'Thử lại',
     none: 'Không có',
     noIp: 'Chưa có IP',
+    close: 'Đóng', new: 'Tạo mới', save: 'Lưu', saveChanges: 'Lưu thay đổi', delete: 'Xóa', remove: 'Gỡ',
   },
   header: {
     admin: 'Quản trị',
     signOut: 'Đăng xuất',
   },
+  navigation: { open: 'Mở điều hướng', collapse: 'Thu gọn điều hướng', browse: 'Duyệt cơ sở', search: 'Tìm tên, node ID, loại hoặc thẻ', facilities: 'Cấu trúc cơ sở', devices: 'Thiết bị phù hợp', logs: 'Nhật ký kiểm toán' },
+  browse: { facility: 'Khu vực', loading: 'Đang tải khu vực', loadFailed: 'Không thể tải khu vực', map: 'Bản đồ', list: 'Danh sách', mapLabel: 'Bản đồ {folder}', deviceCount: '{count} thiết bị trong khu vực', noDevices: 'Chưa có thiết bị được gán vào khu vực này.', emptyTitle: 'Khu vực đã sẵn sàng nhận thiết bị', toggleDevice: 'Chuyển trạng thái {name}', pending: 'Đang chờ' },
+  bulk: { title: 'Điều khiển hàng loạt', descendants: 'Bao gồm các thư mục con', deviceTypes: 'Loại thiết bị', tags: 'Thẻ', targetState: 'Trạng thái đích', preview: 'Xem trước', confirm: 'Xác nhận thao tác', eligible: 'Có thể gửi', offline: 'Ngoại tuyến', skippedLabel: 'Bỏ qua', total: 'Phù hợp', queued: 'Đã gửi {count} lệnh.', skipped: 'Bỏ qua {count} mục.', failed: '{count} mục thất bại.', batch: 'Lô' },
+  logs: { eyebrow: 'Dấu vết vận hành', title: 'Nhật ký kiểm toán', from: 'Từ thời điểm', to: 'Đến thời điểm', folder: 'Thư mục', allFolders: 'Tất cả thư mục', includeDescendants: 'Bao gồm các thư mục con', action: 'Hành động', actor: 'Người thực hiện', node: 'Node ID', filter: 'Lọc dữ liệu', time: 'Thời gian', target: 'Đối tượng', trace: 'Lô / tương quan', result: 'Kết quả', batch: 'Lô', empty: 'Không có sự kiện phù hợp bộ lọc.', total: '{count} sự kiện' },
   connection: {
     live: 'Trực tuyến',
     connecting: 'Đang kết nối...',
@@ -81,11 +86,14 @@ export default {
   admin: {
     eyebrow: 'Bảo mật máy chủ',
     title: 'Quản lý truy cập',
+    description: 'Quản lý cây khu vực, định danh thiết bị, vị trí bản đồ và quyền kế thừa.',
     requestFailed: 'Yêu cầu quản trị thất bại',
     tabs: {
       nodes: 'Node',
       users: 'Người dùng',
       groups: 'Nhóm',
+      folders: 'Thư mục',
+      access: 'Phân quyền',
     },
     nodes: {
       pending: 'Đang chờ phê duyệt',
@@ -95,6 +103,7 @@ export default {
       approvedGroups: 'Nhóm của node đã duyệt',
       noApproved: 'Chưa có node nào được phê duyệt.',
       saveGroups: 'Lưu nhóm',
+      chooseFolder: 'Chọn một thư mục', approved: 'Node đã duyệt', displayName: 'Tên hiển thị', folder: 'Thư mục', capabilities: 'Metadata capability', placement: 'Vị trí capability', placementDescription: 'Vị trí được lưu riêng cho relay đang chọn.', chooseCapability: 'Chọn một relay capability', missingId: 'thiếu ID', deviceTypeCatalog: 'Danh mục loại thiết bị', deviceTypeName: 'Tên loại thiết bị', description: 'Mô tả', addDeviceType: 'Thêm loại', tagCatalog: 'Danh mục tag', tagName: 'Tên tag', tagColor: 'Màu tag', addTag: 'Thêm tag',
     },
     users: {
       accounts: 'Tài khoản',
@@ -130,6 +139,8 @@ export default {
       NODE_CONTROL: 'Điều khiển node',
       TELEMETRY_VIEW: 'Xem dữ liệu cảm biến',
     },
+    folders: { structure: 'Cấu trúc cơ sở', edit: 'Chỉnh sửa thư mục', create: 'Tạo thư mục', untitled: 'Thư mục chưa đặt tên', name: 'Tên hiển thị Unicode', parent: 'Thư mục cha', root: 'Cấp gốc', template: 'Mẫu bản đồ', sortOrder: 'Thứ tự sắp xếp', confirmDelete: 'Xóa thư mục này?' },
+    access: { folder: 'Phạm vi thư mục', roles: 'Vai trò theo thư mục', roleName: 'Tên vai trò', createRole: 'Tạo vai trò', memberships: 'Thành viên', user: 'Người dùng', role: 'Vai trò', assign: 'Gán thành viên', nodes: '{count} node được gán trực tiếp' },
   },
   rooms: {
     'phong-khach': 'Phòng khách',

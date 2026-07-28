@@ -1,8 +1,8 @@
 package com.smarthome.server.authorization;
 
 import java.time.Instant;
-
-import com.smarthome.server.account.AppUser;
+import java.util.HashSet;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,35 +11,38 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "group_memberships",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "group_id"}))
+@Table(name = "folder_roles")
 @Getter
 @Setter
-public class GroupMembership {
-
+public class FolderRole {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private AppUser user;
+    @JoinColumn(name = "folder_id", nullable = false)
+    private Folder folder;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_id", nullable = false)
-    private NodeGroup group;
+    @Column(nullable = false)
+    private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "role_id", nullable = false)
-    private GroupRole role;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "folder_role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_code"))
+    private Set<Permission> permissions = new HashSet<>();
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false, insertable = false)
+    private Instant updatedAt;
 }

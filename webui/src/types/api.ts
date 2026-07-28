@@ -17,9 +17,13 @@
  *  by the server via @JsonRawValue — objects on the wire, typed `unknown` here
  *  and parsed defensively in api/nodes.ts. */
 export interface CapabilityDto {
+  id?: string | number
   type: string // 'relay' | 'sensor'
   channel: number
-  name: string | null
+  discoveryName: string | null
+  displayName?: string | null
+  deviceType?: DeviceType | string | null
+  tags?: Array<Tag | string>
   meta: unknown
   lastState: unknown
 }
@@ -27,13 +31,15 @@ export interface CapabilityDto {
 /** Backend NodeDto (GET /api/v1/nodes, GET /api/v1/nodes/{nodeId}). */
 export interface NodeDto {
   nodeId: string
+  displayName?: string | null
+  discoveryName?: string | null
   room: string
+  folderId?: string | number | null
   fwVersion: string | null
   ip: string | null
   online: boolean
   lastSeen: string | null // ISO-8601 instant
   capabilities: CapabilityDto[] | null
-  groupIds: number[]
   permissions: string[]
 }
 
@@ -51,8 +57,13 @@ export interface SensorReadingDto {
 export type RelayState = 'ON' | 'OFF' | 'UNKNOWN'
 
 export interface RelayChannel {
+  id?: string
   channel: number
   name: string
+  discoveryName?: string
+  displayName?: string | null
+  deviceType?: DeviceType | null
+  tags: Tag[]
   state: RelayState
   source?: string
   /** True while a command for this channel is awaiting its RELAY_STATE ack. */
@@ -73,7 +84,10 @@ export interface SensorMeta {
 
 export interface NodeInfo {
   nodeId: string
+  displayName: string | null
+  discoveryName: string | null
   room: string
+  folderId: string | null
   fwVersion?: string
   ip?: string
   online: boolean
@@ -82,8 +96,33 @@ export interface NodeInfo {
   hasSensor: boolean
   sensorMeta?: SensorMeta
   sensor: SensorReading | null
-  groupIds: number[]
   permissions: string[]
+  capabilities: CapabilityInfo[]
+}
+
+export interface DeviceType {
+  id: string
+  name: string
+  icon?: string
+  description?: string
+}
+
+export interface Tag {
+  id: string
+  name: string
+  color?: string
+}
+
+export interface CapabilityInfo {
+  id: string
+  type: string
+  channel: number
+  discoveryName: string
+  displayName: string | null
+  deviceType: DeviceType | null
+  tags: Tag[]
+  meta: Record<string, unknown> | null
+  lastState: Record<string, unknown> | null
 }
 
 export const NODE_VIEW = 'NODE_VIEW'

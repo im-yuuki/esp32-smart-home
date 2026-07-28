@@ -11,6 +11,9 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
 
     Optional<Node> findByNodeId(String nodeId);
 
+    @Query("select n.folder.id from Node n where n.nodeId = :nodeId and n.approvalStatus = com.smarthome.server.device.ApprovalStatus.APPROVED")
+    Optional<Long> findFolderIdByNodeId(String nodeId);
+
     Optional<Node> findByNodeIdAndApprovalStatus(String nodeId, ApprovalStatus approvalStatus);
 
     @EntityGraph(attributePaths = "capabilities")
@@ -30,14 +33,12 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
             select distinct n from Node n
             where n.approvalStatus = com.smarthome.server.device.ApprovalStatus.APPROVED
               and exists (
-                select ngm.id
-                from NodeGroupMembership ngm, GroupMembership gm
-                join gm.role.permissions p
-                where ngm.node = n
-                  and gm.group = ngm.group
-                  and gm.user.id = :userId
-                  and gm.user.enabled = true
-                  and p.code = 'NODE_VIEW'
+                 select fm.id
+                 from FolderMembership fm
+                 join fm.role.permissions p, FolderClosure fc
+                 where fc.descendant = n.folder and fc.ancestor = fm.folder
+                   and fm.user.id = :userId and fm.user.enabled = true
+                   and fm.user.mustChangePassword = false and p.code = 'NODE_VIEW'
               )
             order by n.room, n.nodeId
             """)
@@ -57,4 +58,10 @@ public interface NodeRepository extends JpaRepository<Node, Long> {
     boolean existsByNodeIdAndApprovalStatus(String nodeId, ApprovalStatus approvalStatus);
 
     List<Node> findByApprovalStatusOrderByCreatedAtAsc(ApprovalStatus approvalStatus);
+
+    long countByFolderId(Long folderId);
+
+    @EntityGraph(attributePaths = {"capabilities", "capabilities.deviceType", "capabilities.tags", "folder"})
+    @Query("select distinct n from Node n where n.folder.id in :folderIds and n.approvalStatus = com.smarthome.server.device.ApprovalStatus.APPROVED order by n.nodeId")
+    List<Node> findApprovedByFolderIdsWithDetails(List<Long> folderIds);
 }

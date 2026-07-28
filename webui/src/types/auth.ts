@@ -3,17 +3,13 @@ export interface CsrfToken {
   headerName: string
 }
 
-export interface UserGroup {
-  id: number
-  name: string
-  roleName: string
-}
-
 export interface SessionUser {
   id: number
   username: string
   displayName: string
   systemAdmin: boolean
   mustChangePassword: boolean
-  groups: UserGroup[]
+  folders: Array<{ folderId: string; folderName: string; roleName?: string; permissions: string[] }>
+  canViewAudit: boolean
+  permissions: string[]
 }

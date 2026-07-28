@@ -8,11 +8,16 @@ export default {
     retry: 'Retry',
     none: 'None',
     noIp: 'No IP',
+    close: 'Close', new: 'New', save: 'Save', saveChanges: 'Save changes', delete: 'Delete', remove: 'Remove',
   },
   header: {
     admin: 'Admin',
     signOut: 'Sign out',
   },
+  navigation: { open: 'Open navigation', collapse: 'Collapse navigation', browse: 'Browse facilities', search: 'Search name, node ID, type or tag', facilities: 'Facilities', devices: 'Matching devices', logs: 'Audit logs' },
+  browse: { facility: 'Facility', loading: 'Loading facility', loadFailed: 'Could not load facility', map: 'Map', list: 'List', mapLabel: 'Map of {folder}', deviceCount: '{count} devices in this folder', noDevices: 'No devices are assigned to this folder.', emptyTitle: 'This space is ready for devices', toggleDevice: 'Toggle {name}', pending: 'Pending' },
+  bulk: { title: 'Bulk control', descendants: 'Include descendant folders', deviceTypes: 'Device types', tags: 'Tags', targetState: 'Target state', preview: 'Preview', confirm: 'Confirm action', eligible: 'Dispatchable', offline: 'Offline', skippedLabel: 'Skipped', total: 'Matched', queued: '{count} commands dispatched.', skipped: '{count} skipped.', failed: '{count} failed.', batch: 'Batch' },
+  logs: { eyebrow: 'Operations trail', title: 'Audit logs', from: 'From', to: 'To', folder: 'Folder', allFolders: 'All folders', includeDescendants: 'Include descendant folders', action: 'Action', actor: 'Actor', node: 'Node ID', filter: 'Apply filters', time: 'Time', target: 'Target', trace: 'Batch / correlation', result: 'Result', batch: 'Batch', empty: 'No audit events match these filters.', total: '{count} events' },
   connection: {
     live: 'Live',
     connecting: 'Connecting...',
@@ -81,11 +86,14 @@ export default {
   admin: {
     eyebrow: 'Server security',
     title: 'Access administration',
+    description: 'Manage the facility hierarchy, device identity, placement and inherited access.',
     requestFailed: 'Administration request failed',
     tabs: {
       nodes: 'Nodes',
       users: 'Users',
       groups: 'Groups',
+      folders: 'Folders',
+      access: 'Access',
     },
     nodes: {
       pending: 'Pending approval',
@@ -95,6 +103,7 @@ export default {
       approvedGroups: 'Approved node groups',
       noApproved: 'No approved nodes.',
       saveGroups: 'Save groups',
+      chooseFolder: 'Choose one folder', approved: 'Approved nodes', displayName: 'Display name', folder: 'Folder', capabilities: 'Capability metadata', placement: 'Capability placement', placementDescription: 'Placement is saved independently for the selected relay.', chooseCapability: 'Choose a relay capability', missingId: 'missing ID', deviceTypeCatalog: 'Device type catalog', deviceTypeName: 'Device type name', description: 'Description', addDeviceType: 'Add type', tagCatalog: 'Tag catalog', tagName: 'Tag name', tagColor: 'Tag color', addTag: 'Add tag',
     },
     users: {
       accounts: 'Accounts',
@@ -130,6 +139,8 @@ export default {
       NODE_CONTROL: 'Control nodes',
       TELEMETRY_VIEW: 'View telemetry',
     },
+    folders: { structure: 'Facility structure', edit: 'Edit folder', create: 'Create folder', untitled: 'Untitled folder', name: 'Unicode display name', parent: 'Parent folder', root: 'Root level', template: 'Map template', sortOrder: 'Sort order', confirmDelete: 'Delete this folder?' },
+    access: { folder: 'Folder scope', roles: 'Folder roles', roleName: 'Role name', createRole: 'Create role', memberships: 'Members', user: 'User', role: 'Role', assign: 'Assign member', nodes: '{count} directly assigned nodes' },
   },
   rooms: {
     'phong-khach': 'Living room',

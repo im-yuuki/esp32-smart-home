@@ -77,9 +77,19 @@
 - [ ] Bổ sung test firmware hoặc hardware-in-the-loop cho relay, nút bấm, NVS, Wi-Fi reconnect và MQTT reconnect.
 - [ ] Bổ sung script lint/format cho web UI; hiện chỉ có build và type-check.
 
+## Đã hoàn thành - quản lý khu vực và audit
+
+- [x] Tên hiển thị Unicode NFC cho node và capability, tách khỏi tên discovery của firmware.
+- [x] Cây thư mục khu vực một node/một folder, quyền RBAC kế thừa từ folder cha.
+- [x] Browse sidebar responsive và map preset ngoài trời, tòa nhà, tầng, hành lang, phòng.
+- [x] Loại thiết bị, tag và vị trí map theo capability điều khiển được.
+- [x] Bulk relay action theo folder/subtree, loại thiết bị và tag, có preview và idempotency.
+- [x] Audit từng lệnh điều khiển trước/sau publish MQTT và quyền `AUDIT_VIEW` theo subtree.
+- [x] Trang xem log có filter actor, folder, node, action và khoảng thời gian.
+
 ## Triển khai sau - Giai đoạn 2
 
-- [ ] Thêm xác thực và phân quyền người dùng cho backend và web UI.
+- [x] Thêm xác thực session và phân quyền người dùng cho backend và web UI.
 - [ ] Giới hạn CORS/WebSocket allowed origins thay cho wildcard dùng trong môi trường phát triển.
 - [ ] Bật TLS cho kết nối MQTT và quản lý certificate/secret khi triển khai.
 - [ ] Thực hiện aggregation telemetry theo tham số `bucket`; hiện API nhận nhưng bỏ qua tham số này.

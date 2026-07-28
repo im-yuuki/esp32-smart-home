@@ -1,6 +1,5 @@
 import { onMounted, onUnmounted, shallowRef, type Ref, type ShallowRef } from 'vue'
-import * as echarts from 'echarts/core'
-import type { EChartsCoreOption, EChartsType, SetOptionOpts } from 'echarts/core'
+import { init, type EChartsCoreOption, type EChartsType, type SetOptionOpts } from 'echarts/core'
 
 /**
  * Minimal ECharts lifecycle on a template ref:
@@ -14,7 +13,7 @@ export function useECharts(elRef: Ref<HTMLElement | null>) {
   onMounted(() => {
     const el = elRef.value
     if (!el) return
-    chart.value = echarts.init(el)
+    chart.value = init(el)
     observer = new ResizeObserver(() => chart.value?.resize())
     observer.observe(el)
   })

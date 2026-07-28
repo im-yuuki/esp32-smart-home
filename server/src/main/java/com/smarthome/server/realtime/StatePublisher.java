@@ -7,7 +7,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import com.smarthome.server.account.AppUserRepository;
-import com.smarthome.server.authorization.NodeGroupMembershipRepository;
+import com.smarthome.server.authorization.FolderMembershipRepository;
 import com.smarthome.server.authorization.Permission;
 import com.smarthome.server.device.ApprovalStatus;
 import com.smarthome.server.device.NodeRepository;
@@ -23,7 +23,7 @@ public class StatePublisher {
 
     private final SimpMessagingTemplate template;
     private final NodeRepository nodeRepository;
-    private final NodeGroupMembershipRepository membershipRepository;
+    private final FolderMembershipRepository membershipRepository;
     private final AppUserRepository userRepository;
 
     public void publish(String type, String nodeId, Integer channel, JsonNode data) {

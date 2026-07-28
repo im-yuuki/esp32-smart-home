@@ -34,11 +34,12 @@ public class AuthController {
     @GetMapping("/me")
     public ApiResponse<MeDto> me(@AuthenticationPrincipal Object ignored) {
         AppUser user = authorizationService.currentUser();
-        List<GroupDto> groups = authorizationService.groupsFor(user).stream()
-                .map(group -> new GroupDto(group.id(), group.name(), group.roleName()))
+        List<FolderMembershipDto> folders = authorizationService.foldersFor(user).stream()
+                .map(folder -> new FolderMembershipDto(folder.id(), folder.name(), folder.roleName()))
                 .toList();
         return ApiResponse.ok(new MeDto(user.getId(), user.getUsername(), user.getDisplayName(),
-                user.isSystemAdmin(), user.isMustChangePassword(), groups));
+                user.isSystemAdmin(), user.isMustChangePassword(),
+                authorizationService.hasAnyAuditAccess(user), folders));
     }
 
     @PostMapping("/change-password")
@@ -48,9 +49,10 @@ public class AuthController {
     }
 
     public record CsrfDto(String token, String headerName) {}
-    public record GroupDto(Long id, String name, String roleName) {}
+    public record FolderMembershipDto(Long id, String name, String roleName) {}
     public record MeDto(Long id, String username, String displayName, boolean systemAdmin,
-                        boolean mustChangePassword, List<GroupDto> groups) {}
+                         boolean mustChangePassword, boolean auditAccess,
+                          List<FolderMembershipDto> folders) {}
     public record ChangePasswordRequest(@NotBlank String currentPassword,
                                         @NotBlank @Size(min = 12, max = 200) String newPassword) {}
 }

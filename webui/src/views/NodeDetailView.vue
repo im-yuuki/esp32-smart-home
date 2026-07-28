@@ -129,7 +129,7 @@ function onToggle(relay: RelayChannel): void {
       <UCard>
         <template #header>
           <div class="flex items-center justify-between gap-2">
-            <h1 class="truncate text-xl font-semibold text-highlighted">{{ node.nodeId }}</h1>
+            <div class="min-w-0"><h1 class="truncate text-xl font-semibold text-highlighted">{{ node.displayName || node.discoveryName || node.nodeId }}</h1><p v-if="node.displayName || node.discoveryName" class="truncate font-mono text-xs text-muted">{{ node.nodeId }}</p></div>
             <NodeStatusBadge :online="node.online" />
           </div>
         </template>
@@ -164,7 +164,7 @@ function onToggle(relay: RelayChannel): void {
           <RelaySwitch
             v-for="relay in node.relays"
             :key="relay.channel"
-            :label="relay.name || t('relay.fallbackName', { channel: relay.channel })"
+            :label="relay.displayName || relay.name || t('relay.fallbackName', { channel: relay.channel })"
             :state="relay.state"
             :pending="relay.pending"
             :disabled="controlsDisabled"

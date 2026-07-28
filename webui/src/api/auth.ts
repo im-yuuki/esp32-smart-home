@@ -4,16 +4,51 @@ import type { CsrfToken, SessionUser } from '@/types/auth'
 
 let mockAuthenticated = true
 
+function csrfCookieToken(): string | null {
+  if (typeof document === 'undefined') return null
+  const prefix = 'XSRF-TOKEN='
+  const cookie = document.cookie.split('; ').find((item) => item.startsWith(prefix))
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null
+}
+
 const mockUser: SessionUser = {
   id: 1,
   username: 'admin',
   displayName: 'Mock Administrator',
   systemAdmin: true,
   mustChangePassword: false,
-  groups: [
-    { id: 1, name: 'Ground floor', roleName: 'Operator' },
-    { id: 2, name: 'Bedrooms', roleName: 'Viewer' },
+  folders: [
+    { folderId: 'floor-1', folderName: 'Tầng trệt', roleName: 'Operator', permissions: ['NODE_VIEW', 'NODE_CONTROL', 'TELEMETRY_VIEW', 'AUDIT_VIEW'] },
   ],
+  canViewAudit: true,
+  permissions: ['NODE_VIEW', 'NODE_CONTROL', 'TELEMETRY_VIEW', 'AUDIT_VIEW'],
+}
+
+function mapSession(raw: unknown): SessionUser {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const folders = Array.isArray(value.folders) ? value.folders : []
+  const permissions = Array.isArray(value.permissions) ? value.permissions.filter((item): item is string => typeof item === 'string') : []
+  return {
+    id: Number(value.id ?? 0),
+    username: String(value.username ?? ''),
+    displayName: String(value.displayName ?? value.username ?? ''),
+    systemAdmin: value.systemAdmin === true,
+    mustChangePassword: value.mustChangePassword === true,
+    folders: folders.flatMap((rawFolder) => {
+      if (!rawFolder || typeof rawFolder !== 'object') return []
+      const folder = rawFolder as Record<string, unknown>
+      const folderId = folder.folderId ?? folder.id
+      if (folderId == null) return []
+      return [{
+        folderId: String(folderId),
+        folderName: String(folder.folderName ?? folder.name ?? folderId),
+        roleName: typeof folder.roleName === 'string' ? folder.roleName : undefined,
+        permissions: Array.isArray(folder.permissions) ? folder.permissions.filter((item): item is string => typeof item === 'string') : [],
+      }]
+    }),
+    permissions,
+    canViewAudit: value.auditAccess === true || value.canViewAudit === true || permissions.includes('AUDIT_VIEW') || value.systemAdmin === true,
+  }
 }
 
 export async function refreshCsrf(): Promise<CsrfToken> {
@@ -23,8 +58,12 @@ export async function refreshCsrf(): Promise<CsrfToken> {
     return token
   }
   const response = await http.get<CsrfToken>('/auth/csrf')
-  setCsrfToken(response.data)
-  return response.data
+  // Spring Security's SPA handler exposes an XOR-masked request attribute in
+  // the JSON response, while state-changing requests expect the raw token from
+  // its same-origin XSRF-TOKEN cookie.
+  const token = { ...response.data, token: csrfCookieToken() ?? response.data.token }
+  setCsrfToken(token)
+  return token
 }
 
 export async function currentSession(): Promise<SessionUser> {
@@ -33,7 +72,7 @@ export async function currentSession(): Promise<SessionUser> {
     return structuredClone(mockUser)
   }
   const response = await http.get<SessionUser>('/auth/me')
-  return response.data
+  return mapSession(response.data)
 }
 
 export async function login(username: string, password: string): Promise<SessionUser> {

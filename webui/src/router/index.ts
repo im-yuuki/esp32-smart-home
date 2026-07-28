@@ -10,6 +10,8 @@ const router = createRouter({
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { guestOnly: true } },
     { path: '/change-password', name: 'change-password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true } },
     { path: '/', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
+    { path: '/browse/:folderId', name: 'browse', component: () => import('@/views/FolderView.vue'), meta: { requiresAuth: true } },
+    { path: '/logs', name: 'logs', component: () => import('@/views/LogsView.vue'), meta: { requiresAuth: true, requiresAudit: true } },
     {
       path: '/nodes/:nodeId',
       name: 'node-detail',
@@ -31,6 +33,7 @@ router.beforeEach(async (to) => {
     return { name: 'change-password' }
   }
   if (to.meta.requiresAdmin && !auth.user?.systemAdmin) return { name: 'dashboard' }
+  if (to.meta.requiresAudit && !auth.user?.systemAdmin && !auth.user?.canViewAudit) return { name: 'dashboard' }
   if (to.meta.guestOnly && auth.isAuthenticated) return { name: 'dashboard' }
   return true
 })
