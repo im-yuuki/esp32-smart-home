@@ -54,7 +54,9 @@ export function useWebSocket() {
       // instance per reconnect attempt. Absolute URL: SockJS is picky about
       // relative ones. Same-origin `/ws` works in dev (Vite proxy) and prod (nginx).
       webSocketFactory: () => new SockJS(`${location.origin}/ws`),
-      connectHeaders: { [csrf.headerName]: csrf.token },
+      // HTTP requests use the raw cookie token, while Spring Security's
+      // XorCsrfChannelInterceptor requires the masked token on STOMP CONNECT.
+      connectHeaders: { [csrf.headerName]: csrf.stompToken ?? csrf.token },
       reconnectDelay: 1_000,
       maxReconnectDelay: 30_000,
       reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL, // 1s, 2s, 4s ... 30s cap

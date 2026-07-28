@@ -1,6 +1,8 @@
 export interface CsrfToken {
   token: string
   headerName: string
+  /** XOR-masked token required by Spring Security's STOMP CONNECT interceptor. */
+  stompToken?: string
 }
 
 export interface SessionUser {

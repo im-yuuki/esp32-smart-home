@@ -61,7 +61,11 @@ export async function refreshCsrf(): Promise<CsrfToken> {
   // Spring Security's SPA handler exposes an XOR-masked request attribute in
   // the JSON response, while state-changing requests expect the raw token from
   // its same-origin XSRF-TOKEN cookie.
-  const token = { ...response.data, token: csrfCookieToken() ?? response.data.token }
+  const token = {
+    ...response.data,
+    token: csrfCookieToken() ?? response.data.token,
+    stompToken: response.data.token,
+  }
   setCsrfToken(token)
   return token
 }

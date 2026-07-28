@@ -40,7 +40,13 @@ export const http = axios.create({
   headers: { Accept: 'application/json' },
 })
 
-let csrfToken: { token: string; headerName: string } | null = null
+export interface CsrfState {
+  token: string
+  headerName: string
+  stompToken?: string
+}
+
+let csrfToken: CsrfState | null = null
 let unauthorizedHandler: (() => void) | null = null
 let authGeneration = 0
 
@@ -50,11 +56,11 @@ export function advanceAuthGeneration(): void {
   authGeneration++
 }
 
-export function setCsrfToken(value: { token: string; headerName: string } | null): void {
+export function setCsrfToken(value: CsrfState | null): void {
   csrfToken = value
 }
 
-export function getCsrfToken(): { token: string; headerName: string } | null {
+export function getCsrfToken(): CsrfState | null {
   return csrfToken
 }
 
