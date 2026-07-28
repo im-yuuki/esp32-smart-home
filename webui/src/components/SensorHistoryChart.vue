@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { use } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { DataZoomComponent, GridComponent, TooltipComponent } from 'echarts/components'
@@ -12,6 +13,7 @@ import type { SensorSample } from '@/types/api'
 use([LineChart, GridComponent, TooltipComponent, DataZoomComponent, CanvasRenderer])
 
 const props = defineProps<{ samples: SensorSample[] }>()
+const { locale, t } = useI18n()
 
 const el = ref<HTMLElement | null>(null)
 const { setOption } = useECharts(el)
@@ -27,10 +29,11 @@ function seriesData() {
 
 function fullOption(): EChartsCoreOption {
   const data = seriesData()
+  const timeFormatter = new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' })
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
     grid: { left: 48, right: 48, top: 32, bottom: 32 },
-    xAxis: { type: 'time' },
+    xAxis: { type: 'time', axisLabel: { formatter: (value: number) => timeFormatter.format(value) } },
     yAxis: [
       { type: 'value', name: '°C', scale: true },
       { type: 'value', name: '%', min: 0, max: 100 },
@@ -38,7 +41,7 @@ function fullOption(): EChartsCoreOption {
     dataZoom: [{ type: 'inside' }], // pinch-zoom on phone
     series: [
       {
-        name: 'Temperature',
+        name: t('sensor.temperature'),
         type: 'line',
         yAxisIndex: 0,
         showSymbol: false,
@@ -47,7 +50,7 @@ function fullOption(): EChartsCoreOption {
         data: data.temperature,
       },
       {
-        name: 'Humidity',
+        name: t('sensor.humidity'),
         type: 'line',
         yAxisIndex: 1,
         showSymbol: false,
@@ -75,6 +78,10 @@ watch(
     })
   },
 )
+
+watch(locale, () => {
+  setOption(fullOption())
+})
 </script>
 
 <template>

@@ -7,6 +7,7 @@ import ui from '@nuxt/ui/vue-plugin'
 import App from './App.vue'
 import router from './router'
 import { setUnauthorizedHandler } from '@/api/http'
+import { i18n } from '@/i18n'
 import { useAuthStore } from '@/stores/auth'
 
 const app = createApp(App)
@@ -22,6 +23,7 @@ setUnauthorizedHandler(() => {
   void router.replace({ name: 'login', query: { redirect } })
 })
 app.use(router)
+app.use(i18n)
 app.use(ui)
 
 app.mount('#app')

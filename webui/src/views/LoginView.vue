@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { localizedError } from '@/i18n/errors'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const { t } = useI18n()
 const username = ref('')
 const password = ref('')
 const submitting = ref(false)
@@ -25,7 +28,7 @@ async function submit(): Promise<void> {
     const destination = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/'
     await router.replace(destination)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e)
+    error.value = localizedError(e)
   } finally {
     submitting.value = false
   }
@@ -37,20 +40,20 @@ async function submit(): Promise<void> {
     <UCard class="w-full max-w-sm">
       <template #header>
         <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-primary">Server access</p>
-          <h1 class="text-xl font-semibold text-highlighted">Sign in to Smart Home</h1>
-          <p class="text-sm text-muted">Accounts and permissions stay on this management server.</p>
+          <p class="text-xs font-medium uppercase tracking-[0.18em] text-primary">{{ t('auth.login.eyebrow') }}</p>
+          <h1 class="text-xl font-semibold text-highlighted">{{ t('auth.login.title') }}</h1>
+          <p class="text-sm text-muted">{{ t('auth.login.description') }}</p>
         </div>
       </template>
       <form class="space-y-4" @submit.prevent="submit">
-        <UFormField label="Username">
+        <UFormField :label="t('auth.login.username')">
           <UInput v-model="username" autocomplete="username" autofocus class="w-full" />
         </UFormField>
-        <UFormField label="Password">
+        <UFormField :label="t('auth.login.password')">
           <UInput v-model="password" type="password" autocomplete="current-password" class="w-full" />
         </UFormField>
         <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-        <UButton type="submit" block :loading="submitting">Sign in</UButton>
+        <UButton type="submit" block :loading="submitting">{{ t('auth.login.submit') }}</UButton>
       </form>
     </UCard>
   </main>

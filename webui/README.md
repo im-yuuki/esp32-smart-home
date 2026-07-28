@@ -1,7 +1,7 @@
 # webui — Smart Home SPA (Phase 1)
 
 Vue 3 (Composition API, `<script setup lang="ts">`) + Vite + TypeScript + Pinia +
-vue-router + **Nuxt UI v4** (standalone, Tailwind v4) + ECharts (modular).
+vue-router + vue-i18n + **Nuxt UI v4** (standalone, Tailwind v4) + ECharts (modular).
 REST via axios, cookie-session authentication, group-scoped RBAC, and realtime via
 STOMP/SockJS on `/ws` (subscribes `/user/queue/events`). All URLs are relative (`/api/...`, `/ws`) so the Vite dev
 proxy and the prod same-origin nginx both work unchanged.
@@ -52,6 +52,10 @@ subscription, so stores/components behave identically in both modes.
 - **Timestamps**: everything past the api/event boundary is epoch **ms**.
   REST ISO-8601 strings and MQTT epoch-seconds payloads are normalized in
   `src/api/*` / `src/utils/time.ts`; components never convert.
+- **Localization**: English and Vietnamese catalogs live in `src/i18n/locales/`.
+  The initial language follows the browser, the header switcher persists the
+  choice under `smarthome.locale`, and the same locale is passed to Nuxt UI,
+  date, relative-time and number formatters.
 - **Chart**: direct `echarts/core` modular imports via `useECharts`
   (init/ResizeObserver/dispose), time axis, dual y (°C / %), `lttb` sampling,
   `dataZoom: inside` for pinch zoom, live-appends `SENSOR_STATE` events.

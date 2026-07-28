@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import NodeStatusBadge from '@/components/NodeStatusBadge.vue'
 import RelaySwitch from '@/components/RelaySwitch.vue'
 import SensorCard from '@/components/SensorCard.vue'
@@ -9,12 +10,14 @@ import { getSensorHistory } from '@/api/telemetry'
 import { useNodesStore } from '@/stores/nodes'
 import { useRealtimeStore } from '@/stores/realtime'
 import { NODE_CONTROL, TELEMETRY_VIEW, type RelayChannel, type SensorSample } from '@/types/api'
+import { localizedError } from '@/i18n/errors'
 import { absoluteTime } from '@/utils/time'
 import { roomLabel } from '@/utils/rooms'
 
 const route = useRoute()
 const store = useNodesStore()
 const realtime = useRealtimeStore()
+const { locale, t } = useI18n()
 
 const nodeId = computed(() => String(route.params.nodeId ?? ''))
 const node = computed(() => store.nodeById(nodeId.value))
@@ -46,7 +49,7 @@ async function loadHistory(): Promise<void> {
     samples.value = result
   } catch (e) {
     if (generation !== historyGeneration || nodeId.value !== requestedNodeId) return
-    historyError.value = e instanceof Error ? e.message : String(e)
+    historyError.value = localizedError(e)
     historyLoadedFor = null
   } finally {
     if (generation === historyGeneration && nodeId.value === requestedNodeId) historyLoading.value = false
@@ -107,7 +110,7 @@ function onToggle(relay: RelayChannel): void {
       size="sm"
       class="px-0"
     >
-      Dashboard
+      {{ t('common.dashboard') }}
     </UButton>
 
     <!-- Still fetching the node list (deep link) -->
@@ -118,8 +121,8 @@ function onToggle(relay: RelayChannel): void {
       color="error"
       variant="subtle"
       icon="i-lucide-circle-alert"
-      title="Node not found"
-      :description="`No node with id '${nodeId}' is known to the server.`"
+      :title="t('node.notFound')"
+      :description="t('node.notFoundDescription', { nodeId })"
     />
 
     <template v-else>
@@ -132,27 +135,27 @@ function onToggle(relay: RelayChannel): void {
         </template>
         <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-4">
           <div>
-            <dt class="text-muted">Room</dt>
-            <dd class="text-default">{{ roomLabel(node.room) }}</dd>
+            <dt class="text-muted">{{ t('node.room') }}</dt>
+            <dd class="text-default">{{ roomLabel(node.room, t) }}</dd>
           </div>
           <div>
-            <dt class="text-muted">Firmware</dt>
+            <dt class="text-muted">{{ t('node.firmware') }}</dt>
             <dd class="text-default">{{ node.fwVersion ?? '—' }}</dd>
           </div>
           <div>
-            <dt class="text-muted">IP</dt>
+            <dt class="text-muted">{{ t('node.ip') }}</dt>
             <dd class="text-default">{{ node.ip ?? '—' }}</dd>
           </div>
           <div>
-            <dt class="text-muted">Last seen</dt>
-            <dd class="text-default">{{ node.lastSeen ? absoluteTime(node.lastSeen) : '—' }}</dd>
+            <dt class="text-muted">{{ t('node.lastSeen') }}</dt>
+            <dd class="text-default">{{ node.lastSeen ? absoluteTime(node.lastSeen, locale) : '—' }}</dd>
           </div>
         </dl>
       </UCard>
 
       <UCard v-if="node.relays.length">
         <template #header>
-          <h2 class="font-medium text-highlighted">Relays</h2>
+          <h2 class="font-medium text-highlighted">{{ t('node.relays') }}</h2>
         </template>
         <div
           class="divide-y divide-default transition-opacity"
@@ -161,7 +164,7 @@ function onToggle(relay: RelayChannel): void {
           <RelaySwitch
             v-for="relay in node.relays"
             :key="relay.channel"
-            :label="relay.name"
+            :label="relay.name || t('relay.fallbackName', { channel: relay.channel })"
             :state="relay.state"
             :pending="relay.pending"
             :disabled="controlsDisabled"
@@ -173,7 +176,7 @@ function onToggle(relay: RelayChannel): void {
       <UCard v-if="node.hasSensor && node.permissions.includes(TELEMETRY_VIEW)">
         <template #header>
           <div class="flex items-center justify-between gap-2">
-            <h2 class="font-medium text-highlighted">Temperature &amp; humidity — last 24h</h2>
+            <h2 class="font-medium text-highlighted">{{ t('node.sensorHistory') }}</h2>
             <span v-if="node.sensorMeta?.model" class="text-xs text-muted">
               {{ node.sensorMeta.model }}
             </span>
@@ -187,7 +190,7 @@ function onToggle(relay: RelayChannel): void {
             color="error"
             variant="subtle"
             icon="i-lucide-circle-alert"
-            title="Failed to load history"
+            :title="t('node.historyFailed')"
             :description="historyError"
           />
           <SensorHistoryChart v-else :samples="samples" />

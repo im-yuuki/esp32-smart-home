@@ -21,8 +21,9 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
       // ws:true covers the upgraded transport; SockJS's /ws/info + xhr fallbacks
-      // are plain HTTP on the same prefix and are proxied too.
-      '/ws': { target: 'http://localhost:8080', ws: true, changeOrigin: true },
+      // are plain HTTP on the same prefix and are proxied too. Preserve Host so
+      // Spring's default same-origin check sees the same host as the browser.
+      '/ws': { target: 'http://localhost:8080', ws: true, changeOrigin: false },
     },
   },
 })

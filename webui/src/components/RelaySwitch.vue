@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { RelayState } from '@/types/api'
 
 /**
@@ -14,6 +15,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ toggle: [] }>()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -24,7 +26,7 @@ const emit = defineEmits<{ toggle: [] }>()
       :model-value="state === 'ON'"
       :loading="pending"
       :disabled="disabled || pending"
-      :aria-label="`Toggle ${label}`"
+      :aria-label="t('relay.toggle', { label })"
       @update:model-value="emit('toggle')"
     />
   </div>

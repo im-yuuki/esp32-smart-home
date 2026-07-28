@@ -1,4 +1,4 @@
-import { http, setCsrfToken } from './http'
+import { ApiError, http, setCsrfToken } from './http'
 import { isMock } from './mock'
 import type { CsrfToken, SessionUser } from '@/types/auth'
 
@@ -29,7 +29,7 @@ export async function refreshCsrf(): Promise<CsrfToken> {
 
 export async function currentSession(): Promise<SessionUser> {
   if (isMock) {
-    if (!mockAuthenticated) throw new Error('Not authenticated')
+    if (!mockAuthenticated) throw new ApiError('UNAUTHORIZED', 'Not authenticated', 401)
     return structuredClone(mockUser)
   }
   const response = await http.get<SessionUser>('/auth/me')
@@ -63,7 +63,7 @@ export async function logout(): Promise<void> {
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   if (isMock) {
-    if (newPassword.length < 12) throw new Error('Password must be at least 12 characters')
+    if (newPassword.length < 12) throw new ApiError('VALIDATION_ERROR', 'Password must be at least 12 characters', 400)
     mockAuthenticated = false
     setCsrfToken(null)
     return

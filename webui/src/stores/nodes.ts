@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { NODE_CONTROL, type NodeInfo, type RelayState } from '@/types/api'
 import type { ServerEvent } from '@/types/events'
 import { listNodes, sendRelayCommand as postRelayCommand } from '@/api/nodes'
+import { localizedError } from '@/i18n/errors'
+import { i18n } from '@/i18n'
 import { roomCompare } from '@/utils/rooms'
 import { useRealtimeStore } from './realtime'
 
@@ -71,7 +73,9 @@ export const useNodesStore = defineStore('nodes', () => {
     for (const list of rooms.values()) {
       list.sort((a, b) => a.nodeId.localeCompare(b.nodeId))
     }
-    return [...rooms.entries()].sort((a, b) => roomCompare(a[0], b[0]))
+    return [...rooms.entries()].sort((a, b) =>
+      roomCompare(a[0], b[0], i18n.global.locale.value, (key) => i18n.global.t(key)),
+    )
   })
 
   function nodeById(nodeId: string): NodeInfo | undefined {
@@ -128,7 +132,7 @@ export const useNodesStore = defineStore('nodes', () => {
         loadError.value = null
       } catch (e) {
         if (generation !== fetchGeneration) return
-        loadError.value = e instanceof Error ? e.message : String(e)
+        loadError.value = localizedError(e)
       } finally {
         if (generation === fetchGeneration) {
           loading.value = false
@@ -170,8 +174,8 @@ export const useNodesStore = defineStore('nodes', () => {
       relay.pending = false
       relay.state = prevState
       toast.add({
-        title: 'Command failed',
-        description: e instanceof Error ? e.message : String(e),
+        title: i18n.global.t('relay.commandFailed'),
+        description: localizedError(e),
         color: 'error',
         icon: 'i-lucide-circle-alert',
       })
@@ -190,8 +194,8 @@ export const useNodesStore = defineStore('nodes', () => {
       relay.pending = false
     }
     toast.add({
-      title: 'Device not responding',
-      description: `${nodeId} did not confirm relay ${channel} within 5s`,
+      title: i18n.global.t('relay.notResponding'),
+      description: i18n.global.t('relay.timeout', { nodeId, channel, seconds: COMMAND_TIMEOUT_MS / 1000 }),
       color: 'error',
       icon: 'i-lucide-wifi-off',
     })
@@ -210,8 +214,8 @@ export const useNodesStore = defineStore('nodes', () => {
         relay.pending = false
       }
       toast.add({
-        title: 'Device not responding',
-        description: `${nodeId} went offline before confirming relay ${parsed.channel}`,
+        title: i18n.global.t('relay.notResponding'),
+        description: i18n.global.t('relay.offlineBeforeConfirmation', { nodeId, channel: parsed.channel }),
         color: 'error',
         icon: 'i-lucide-wifi-off',
       })

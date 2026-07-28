@@ -1,13 +1,13 @@
-/** Room slug helpers: `phong-khach` -> "Phong Khach". */
+/** Room slug helpers with translations for the firmware's known room slugs. */
 
-/** Static overrides for slugs whose display name isn't a simple title-case. */
-const ROOM_LABEL_OVERRIDES: Record<string, string> = {
-  // 'phong-khach': 'Phòng khách',
-}
+type Translate = (key: string) => string
 
-export function roomLabel(slug: string): string {
-  const override = ROOM_LABEL_OVERRIDES[slug]
-  if (override) return override
+export function roomLabel(slug: string, translate?: Translate): string {
+  if (translate) {
+    const key = `rooms.${slug}`
+    const translated = translate(key)
+    if (translated !== key) return translated
+  }
   return slug
     .split(/[-_\s]+/)
     .filter(Boolean)
@@ -16,6 +16,6 @@ export function roomLabel(slug: string): string {
 }
 
 /** Sort rooms by display label. */
-export function roomCompare(a: string, b: string): number {
-  return roomLabel(a).localeCompare(roomLabel(b))
+export function roomCompare(a: string, b: string, locale = 'en', translate?: Translate): number {
+  return roomLabel(a, translate).localeCompare(roomLabel(b, translate), locale)
 }

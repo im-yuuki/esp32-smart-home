@@ -1,27 +1,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRealtimeStore } from '@/stores/realtime'
 
 const realtime = useRealtimeStore()
+const { t } = useI18n()
 
 const display = computed(() => {
   switch (realtime.status) {
     case 'connected':
-      return { label: 'Live', dot: 'bg-success', pulse: false }
+      return { label: t('connection.live'), dot: 'bg-success', pulse: false }
     case 'connecting':
-      return { label: 'Connecting…', dot: 'bg-warning', pulse: true }
+      return { label: t('connection.connecting'), dot: 'bg-warning', pulse: true }
     case 'reconnecting':
-      return { label: 'Reconnecting…', dot: 'bg-warning', pulse: true }
+      return { label: t('connection.reconnecting'), dot: 'bg-warning', pulse: true }
     case 'disconnected':
     default:
-      return { label: 'Offline', dot: 'bg-error', pulse: false }
+      return { label: t('connection.offline'), dot: 'bg-error', pulse: false }
   }
 })
 
 const tooltip = computed(() =>
   realtime.status === 'reconnecting'
-    ? `Reconnect attempt ${realtime.attempts}`
-    : `Realtime connection: ${display.value.label}`,
+    ? t('connection.reconnectAttempt', { count: realtime.attempts })
+    : t('connection.status', { status: display.value.label }),
 )
 </script>
 
@@ -32,7 +34,7 @@ const tooltip = computed(() =>
         class="size-2 rounded-full"
         :class="[display.dot, display.pulse ? 'animate-pulse' : '']"
       />
-      <span>{{ display.label }}</span>
+      <span class="hidden sm:inline">{{ display.label }}</span>
     </div>
   </UTooltip>
 </template>

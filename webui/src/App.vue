@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { en, vi } from '@nuxt/ui/locale'
 import AppHeader from '@/components/AppHeader.vue'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAuthStore } from '@/stores/auth'
@@ -10,6 +12,8 @@ import { useNodesStore } from '@/stores/nodes'
 const { connect, disconnect } = useWebSocket()
 const auth = useAuthStore()
 const nodes = useNodesStore()
+const { locale } = useI18n()
+const uiLocale = computed(() => locale.value === 'vi' ? vi : en)
 
 watch(
   () => auth.isAuthenticated,
@@ -29,7 +33,7 @@ onBeforeUnmount(() => {
 
 <template>
   <!-- UApp provides the Toaster/Tooltip/overlay providers (required for useToast). -->
-  <UApp>
+  <UApp :locale="uiLocale">
     <div class="min-h-screen bg-default text-default">
       <AppHeader />
       <main>

@@ -12,20 +12,24 @@ export function secondsToMs(seconds: number): number {
   return Math.round(seconds * 1000)
 }
 
-/** Relative "updated Xs ago" formatter. Pass a ticking `nowMs` for live updates. */
-export function relativeTime(tsMs: number, nowMs: number = Date.now()): string {
+/** Locale-aware relative formatter. Pass a ticking `nowMs` for live updates. */
+export function relativeTime(tsMs: number, nowMs: number = Date.now(), locale = 'en'): string {
   const diffS = Math.max(0, Math.floor((nowMs - tsMs) / 1000))
-  if (diffS < 5) return 'just now'
-  if (diffS < 60) return `${diffS}s ago`
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  if (diffS < 5) return formatter.format(0, 'second')
+  if (diffS < 60) return formatter.format(-diffS, 'second')
   const m = Math.floor(diffS / 60)
-  if (m < 60) return `${m}m ago`
+  if (m < 60) return formatter.format(-m, 'minute')
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
+  if (h < 24) return formatter.format(-h, 'hour')
   const d = Math.floor(h / 24)
-  return `${d}d ago`
+  return formatter.format(-d, 'day')
 }
 
 /** Absolute local date-time for detail views. */
-export function absoluteTime(tsMs: number): string {
-  return new Date(tsMs).toLocaleString()
+export function absoluteTime(tsMs: number, locale = 'en'): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(tsMs)
 }

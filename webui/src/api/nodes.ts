@@ -40,7 +40,7 @@ function mapRelay(cap: CapabilityDto): RelayChannel {
   const state = last?.state === 'ON' || last?.state === 'OFF' ? last.state : 'UNKNOWN'
   return {
     channel: cap.channel,
-    name: cap.name || `Relay ${cap.channel}`,
+    name: cap.name || '',
     state,
     source: str(last?.source),
     pending: false,

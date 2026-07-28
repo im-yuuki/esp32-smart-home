@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { NODE_CONTROL, TELEMETRY_VIEW, type NodeInfo, type RelayChannel } from '@/types/api'
 import NodeStatusBadge from '@/components/NodeStatusBadge.vue'
 import RelaySwitch from '@/components/RelaySwitch.vue'
@@ -11,6 +12,7 @@ const props = defineProps<{ node: NodeInfo }>()
 
 const nodesStore = useNodesStore()
 const realtime = useRealtimeStore()
+const { t } = useI18n()
 
 // A command sent while the WS is down could never be confirmed and would
 // always hit the 5s timeout — prevent it; the header indicator explains why.
@@ -33,7 +35,7 @@ function onToggle(relay: RelayChannel): void {
       <div class="flex items-center justify-between gap-2">
         <div class="min-w-0">
           <p class="truncate font-medium text-highlighted">{{ node.nodeId }}</p>
-          <p v-if="node.fwVersion" class="text-xs text-muted">fw {{ node.fwVersion }}</p>
+          <p v-if="node.fwVersion" class="text-xs text-muted">{{ t('node.firmwareShort', { version: node.fwVersion }) }}</p>
         </div>
         <NodeStatusBadge :online="node.online" />
       </div>
@@ -48,7 +50,7 @@ function onToggle(relay: RelayChannel): void {
         <RelaySwitch
           v-for="relay in node.relays"
           :key="relay.channel"
-          :label="relay.name"
+          :label="relay.name || t('relay.fallbackName', { channel: relay.channel })"
           :state="relay.state"
           :pending="relay.pending"
           :disabled="controlsDisabled"
@@ -67,7 +69,7 @@ function onToggle(relay: RelayChannel): void {
         trailing-icon="i-lucide-arrow-right"
         class="px-0"
       >
-        Details
+        {{ t('node.details') }}
       </UButton>
     </template>
   </UCard>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import RoomSection from '@/components/RoomSection.vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useAuthStore } from '@/stores/auth'
 
 const store = useNodesStore()
 const auth = useAuthStore()
+const { t } = useI18n()
 
 onMounted(() => {
   // WS onConnect also fetches; this covers REST-up-but-WS-still-connecting.
@@ -17,11 +19,11 @@ onMounted(() => {
   <UContainer class="py-6">
     <div v-if="auth.user?.groups.length" class="mb-5 flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold text-highlighted">Nodes</h1>
-        <p class="text-sm text-muted">Access is combined across your assigned groups.</p>
+        <h1 class="text-xl font-semibold text-highlighted">{{ t('dashboard.title') }}</h1>
+        <p class="text-sm text-muted">{{ t('dashboard.description') }}</p>
       </div>
       <select v-model="store.selectedGroupId" class="rounded-md border border-default bg-default px-3 py-2 text-sm text-default">
-        <option :value="null">All groups</option>
+        <option :value="null">{{ t('dashboard.allGroups') }}</option>
         <option v-for="group in auth.user.groups" :key="group.id" :value="group.id">{{ group.name }}</option>
       </select>
     </div>
@@ -36,10 +38,10 @@ onMounted(() => {
         color="error"
         variant="subtle"
         icon="i-lucide-circle-alert"
-        title="Failed to load nodes"
+        :title="t('dashboard.loadFailed')"
         :description="store.loadError"
       />
-      <UButton icon="i-lucide-refresh-cw" @click="store.fetchNodes()">Retry</UButton>
+      <UButton icon="i-lucide-refresh-cw" @click="store.fetchNodes()">{{ t('common.retry') }}</UButton>
     </div>
 
     <template v-else>
@@ -48,8 +50,8 @@ onMounted(() => {
         color="neutral"
         variant="subtle"
         icon="i-lucide-search"
-        title="No nodes discovered yet"
-        description="Nodes appear here automatically once they publish their MQTT discovery message."
+        :title="t('dashboard.emptyTitle')"
+        :description="t('dashboard.emptyDescription')"
       />
       <RoomSection
         v-for="[room, nodes] in store.nodesByRoom"

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import ConnectionIndicator from '@/components/ConnectionIndicator.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t } = useI18n()
 
 async function logout(): Promise<void> {
   try {
@@ -22,11 +25,14 @@ async function logout(): Promise<void> {
         <UIcon name="i-lucide-house" class="size-5 text-primary" />
         <span>Smart Home</span>
       </RouterLink>
-      <div v-if="auth.isAuthenticated" class="flex items-center gap-2">
-        <ConnectionIndicator />
-        <UButton v-if="auth.user?.systemAdmin" to="/admin" color="neutral" variant="ghost" icon="i-lucide-shield">Admin</UButton>
-        <span class="hidden text-sm text-muted sm:inline">{{ auth.user?.displayName }}</span>
-        <UButton color="neutral" variant="ghost" icon="i-lucide-log-out" aria-label="Sign out" @click="logout" />
+      <div class="flex items-center gap-1 sm:gap-2">
+        <LanguageSwitcher />
+        <template v-if="auth.isAuthenticated">
+          <ConnectionIndicator />
+          <UButton v-if="auth.user?.systemAdmin" to="/admin" color="neutral" variant="ghost" icon="i-lucide-shield" class="hidden md:inline-flex">{{ t('header.admin') }}</UButton>
+          <span class="hidden text-sm text-muted lg:inline">{{ auth.user?.displayName }}</span>
+          <UButton color="neutral" variant="ghost" icon="i-lucide-log-out" :aria-label="t('header.signOut')" @click="logout" />
+        </template>
       </div>
     </UContainer>
   </header>
