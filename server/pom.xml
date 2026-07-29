@@ -89,6 +89,15 @@
     </dependency>
 
     <dependency>
+      <!-- 3.0.3 targets Boot 4.0.x; runs on 4.1 but is not officially rebuilt for
+           it yet — if an incompatibility shows up, drop this dependency and
+           OpenApiConfig together (single-commit revert). -->
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>3.0.3</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <optional>true</optional>
