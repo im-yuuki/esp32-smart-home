@@ -1,11 +1,11 @@
 # server/ — Spring Boot 4.1 backend (Phase 1)
 
 The single server-side MQTT client of the system: subscribes `home/#`, persists
-discovery/status/state/telemetry to Postgres (Flyway-managed schema), publishes relay
+discovery/status/state/telemetry to MySQL (Flyway-managed schema), publishes relay
 commands, and broadcasts normalized events to the web UI over STOMP/SockJS.
 
 Stack: Spring Boot **4.1.0** (Jackson 3 / `tools.jackson`), Java 25 (LTS), Spring Integration
-MQTT 7.1.0 + Paho v3 (MQTT 3.1.1), Hibernate ORM 7.4, Flyway, PostgreSQL 16.
+MQTT 7.1.0 + Paho v3 (MQTT 3.1.1), Hibernate ORM 7.4, Flyway, MySQL 8.4.
 
 ## Docker dev loop
 
@@ -19,6 +19,7 @@ docker compose logs -f server                           # watch logs
 Configuration is env-driven (`DB_URL`, `DB_USER`, `DB_PASSWORD`, `MQTT_URI`,
 `MQTT_USERNAME`, `MQTT_PASSWORD`, `MQTT_CLIENT_ID`) — compose injects the values from
 the root `.env`. Health: `http://localhost/actuator/health` (or the configured `HTTP_PORT`).
+The complete OpenAPI contract is served at `/openapi.yaml` and rendered at `/swagger-ui.html`.
 
 ## REST surface (`/api/v1`, all responses in the `{"data":…,"error":…}` envelope)
 
@@ -45,9 +46,9 @@ WebSocket: authenticated STOMP endpoint `/ws` (SockJS), per-user `/user/queue/ev
   status publish. The stub (nodeId + room from the topic) is completed by discovery
   milliseconds later. Relay/sensor messages for unknown nodes/capabilities are still
   warn-and-dropped; retained replay self-heals them on the next (re)subscribe.
-- **JSONB as `String`** + `@JdbcTypeCode(SqlTypes.JSON)`, re-emitted with `@JsonRawValue`:
+- **JSON as `String`** + `@JdbcTypeCode(SqlTypes.JSON)`, re-emitted with `@JsonRawValue`:
   Hibernate 7.4's auto-detected JSON format mapper targets Jackson 2, which is not on the
-  Boot 4 classpath. `ip` is a `String` bound as `inet` via `SqlTypes.INET`.
+  Boot 4 classpath. IP addresses are stored as strings to support both IPv4 and IPv6.
 - **State-topic-is-truth** — POST command never waits for, nor fakes, the resulting
   state; `last_state` changes only when the node reports on `.../relay/{ch}/state`.
 - Retained-replay ordering across topics is not MQTT-guaranteed (accepted Phase 1

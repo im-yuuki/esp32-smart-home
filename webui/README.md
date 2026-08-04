@@ -78,6 +78,6 @@ the `server` container — that file is the single deployment source of truth.
 ## Dev against the real stack
 
 ```sh
-cd .. && docker compose up -d               # postgres + mosquitto + server
+cd .. && docker compose up -d               # mysql + mosquitto + server
 cd webui && npm run dev                     # proxies to localhost:8080
 ```

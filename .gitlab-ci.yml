@@ -22,7 +22,7 @@ server:
       - .m2/repository
   script:
     - cd server
-    # Unit tests are self-contained (no DB/broker needed): TopicParser + payload mapping.
+    # The MySQL migration test runs when the runner exposes Docker; otherwise it is skipped.
     - mvn -B verify
   artifacts:
     paths:

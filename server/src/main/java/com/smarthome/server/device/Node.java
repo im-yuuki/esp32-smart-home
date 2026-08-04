@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,25 +38,20 @@ public class Node {
     @Column(nullable = false)
     private String room;
 
-    @Column(name = "discovery_name")
+    @Column(name = "discovery_name", length = 100)
     private String discoveryName;
 
-    @Column(name = "display_name")
+    @Column(name = "display_name", length = 100)
     private String displayName;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
 
-    @Column(name = "fw_version")
+    @Column(name = "fw_version", length = 32)
     private String fwVersion;
 
-    /**
-     * Schema column is {@code inet} (V1 SQL is a roadmap invariant); Hibernate 7 binds a
-     * String attribute through {@link SqlTypes#INET} via PGobject.
-     */
-    @JdbcTypeCode(SqlTypes.INET)
-    @Column(columnDefinition = "inet")
+    @Column(length = 45)
     private String ip;
 
     @Column(nullable = false)
@@ -73,7 +65,7 @@ public class Node {
     private Instant createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "approval_status", nullable = false)
+    @Column(name = "approval_status", nullable = false, length = 16)
     private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
 
     @Column(name = "approved_at")

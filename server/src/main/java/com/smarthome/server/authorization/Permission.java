@@ -19,6 +19,6 @@ public class Permission {
     public static final String AUDIT_VIEW = "AUDIT_VIEW";
 
     @Id
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String code;
 }

@@ -14,7 +14,7 @@
 | Giao thức thiết bị ↔ server | MQTT 3.1.1/5.0 qua TLS (từ GĐ2) |
 | MQTT broker | Eclipse Mosquitto 2.x (Docker) |
 | Backend | Spring Boot 3.x, Java 21 |
-| Database | PostgreSQL 16 (+ TimescaleDB extension từ GĐ2) |
+| Database | MySQL 8.4 LTS |
 | Web UI | Vue 3 (Composition API) + Vite + TypeScript + Pinia + Vue Router |
 | Realtime UI | WebSocket (STOMP over SockJS) từ backend |
 | Triển khai server | Docker Compose |
@@ -24,7 +24,7 @@
 ```
 [Vue SPA] ⇄ REST + WebSocket ⇄ [Spring Boot] ⇄ MQTT ⇄ [Mosquitto] ⇄ MQTT ⇄ [ESP32-S3 nodes]
                                       ⇅
-                                [PostgreSQL]
+                                  [MySQL 8.4]
 ```
 
 - Node **không bao giờ** nói chuyện trực tiếp với web UI. Mọi lệnh đi qua backend để kiểm tra quyền và ghi audit log.
@@ -130,7 +130,7 @@ firmware/
 
 ### 2.3. Backend (Spring Boot)
 
-**Khởi tạo:** Spring Boot 3.3+, Java 21, Maven. Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-websocket`, `spring-boot-starter-validation`, `spring-integration-mqtt` (dùng Eclipse Paho bên dưới), `postgresql`, `lombok`, `springdoc-openapi-starter-webmvc-ui`.
+**Khởi tạo:** Spring Boot 3.3+, Java 21, Maven. Dependencies: `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-websocket`, `spring-boot-starter-validation`, `spring-integration-mqtt` (dùng Eclipse Paho bên dưới), `mysql-connector-j`, `lombok`, `springdoc-openapi-starter-webmvc-ui`.
 
 **Cấu trúc package `com.smarthome.server`:**
 
@@ -235,7 +235,7 @@ webui/src/
 
 ### 2.5. Deploy GĐ1
 
-`deploy/docker-compose.yml` gồm: `postgres:16`, `eclipse-mosquitto:2`, `server` (build từ Dockerfile multi-stage của Spring Boot), `webui` (build Vite → nginx). Biến môi trường qua file `.env`. Volume cho Postgres và Mosquitto.
+`deploy/docker-compose.yml` gồm: `mysql:8.4`, `eclipse-mosquitto:2`, `server` (build từ Dockerfile multi-stage của Spring Boot), `webui` (build Vite → nginx). Biến môi trường qua file `.env`. Volume cho MySQL và Mosquitto.
 
 ### 2.6. Tiêu chí nghiệm thu GĐ1
 
@@ -250,7 +250,7 @@ webui/src/
 
 ## 3. Giai đoạn 2 — Xác thực, RBAC, lịch sử telemetry, TLS, OTA
 
-**Phạm vi:** hệ thống trở nên đa người dùng và an toàn: đăng nhập JWT, phân quyền RBAC theo phạm vi, audit log, MQTT qua TLS, lưu telemetry dài hạn với TimescaleDB, cập nhật firmware OTA từ server.
+**Phạm vi:** hệ thống trở nên đa người dùng và an toàn: đăng nhập JWT, phân quyền RBAC theo phạm vi, audit log, MQTT qua TLS, lưu telemetry dài hạn với partition/rollup trên MySQL, cập nhật firmware OTA từ server.
 
 ### 3.1. Xác thực & RBAC (Spring Security)
 
@@ -313,9 +313,9 @@ CREATE TABLE audit_logs (
 
 **Web UI thêm:** trang login, lưu token trong memory + refresh silent, route guard theo quyền (menu Quản trị chỉ hiện với `user.manage`), trang quản lí user/role với UI gán quyền theo phòng (checkbox matrix: role × phòng × action). UI ẩn/disable những thiết bị user không có `device.read`.
 
-### 3.2. Telemetry dài hạn (TimescaleDB)
+### 3.2. Telemetry dài hạn (MySQL)
 
-- Đổi image Postgres sang `timescale/timescaledb:latest-pg16`. Migration: `SELECT create_hypertable('sensor_readings','ts');`
+- Phân vùng `sensor_readings` theo thời gian và tạo bảng rollup theo giờ/ngày; áp dụng retention bằng scheduled maintenance.
 - Continuous aggregate `sensor_readings_hourly` (avg/min/max theo giờ), retention policy: raw giữ 30 ngày, hourly giữ 2 năm.
 - API `GET /sensors/history` thêm tham số `bucket=raw|hour|day`, backend chọn bảng phù hợp.
 
@@ -448,7 +448,7 @@ Tài liệu `docs/ADDING_A_MODULE.md` mô tả checklist này kèm ví dụ hoà
 - **Mạng:** khuyến nghị tách node IoT vào VLAN/SSID riêng, firewall chỉ cho phép node ↔ server (MQTT 8883, HTTPS OTA) và NTP. Ghi hướng dẫn trong `docs/NETWORK.md`.
 - **Server:** chạy trên mini PC/Raspberry Pi 5 + UPS. Backup: `pg_dump` hàng đêm + volume Mosquitto/Matter, script trong `deploy/backup/`.
 - **Bí mật:** không commit secret; dùng `.env` (gitignore) + `.env.example`.
-- **Chất lượng code:** backend có unit test cho `PermissionEvaluator` và MQTT router (JUnit + Testcontainers cho Postgres/Mosquitto); firmware có test host-based cho logic parse/format JSON (Unity/CMock); CI chạy build cả 3 phần.
+- **Chất lượng code:** backend có unit test cho `PermissionEvaluator` và MQTT router (JUnit + Testcontainers cho MySQL/Mosquitto); firmware có test host-based cho logic parse/format JSON (Unity/CMock); CI chạy build cả 3 phần.
 - **Tài liệu:** mỗi quyết định kiến trúc lớn ghi 1 ADR trong `docs/adr/`.
 
 ## 8. Tóm tắt thứ tự thực hiện
@@ -456,7 +456,7 @@ Tài liệu `docs/ADDING_A_MODULE.md` mô tả checklist này kèm ví dụ hoà
 | GĐ | Kết quả then chốt | Phụ thuộc |
 |---|---|---|
 | 1 | 1 node ESP-IDF + Spring Boot + Vue: điều khiển relay, xem cảm biến realtime | — |
-| 2 | JWT + RBAC scope + audit log, TLS MQTT, TimescaleDB, OTA rollback | GĐ1 |
+| 2 | JWT + RBAC scope + audit log, TLS MQTT, MySQL telemetry rollup, OTA rollback | GĐ1 |
 | 3 | Provisioning qua web, credential + ACL per-node, ≥5 node ổn định | GĐ2 |
 | 4 | Matter bridge, expose theo Expose Profile, voice control | GĐ2, GĐ3 |
 | 5 | Automation engine chạy theo quyền user, khung thêm module mới | GĐ2 |

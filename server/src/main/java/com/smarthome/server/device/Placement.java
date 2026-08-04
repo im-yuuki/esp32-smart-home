@@ -33,6 +33,7 @@ public class Placement {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "capability_id")
     private Capability capability;
+    @Column(length = 100)
     private String label;
     @Column(nullable = false)
     private double x;
@@ -45,7 +46,7 @@ public class Placement {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "json")
     private String config = "{}";
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;

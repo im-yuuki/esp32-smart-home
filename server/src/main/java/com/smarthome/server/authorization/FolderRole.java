@@ -31,7 +31,7 @@ public class FolderRole {
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
     @ManyToMany(fetch = FetchType.LAZY)

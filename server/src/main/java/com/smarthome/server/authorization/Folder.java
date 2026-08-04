@@ -30,17 +30,17 @@ public class Folder {
     @JoinColumn(name = "parent_id")
     private Folder parent;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String icon = "i-lucide-folder";
 
-    @Column(name = "template_type")
+    @Column(name = "template_type", length = 16)
     private String templateType;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "template_config", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "template_config", nullable = false, columnDefinition = "json")
     private String templateConfig = "{}";
 
     @Column(name = "sort_order", nullable = false)

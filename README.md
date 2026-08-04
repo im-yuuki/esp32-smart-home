@@ -5,7 +5,7 @@ Multi-room smart-home system: ESP32-S3 nodes (relays + sensors) connect over WiF
 ```
 [Vue SPA] ⇄ REST + WebSocket ⇄ [Spring Boot] ⇄ MQTT ⇄ [Mosquitto] ⇄ MQTT ⇄ [ESP32-S3 nodes]
                                       ⇅
-                                [PostgreSQL]
+                                  [MySQL 8.4]
 ```
 
 Nodes never talk to the web UI directly. The backend is the only server-side MQTT client; state topics are the single source of truth (the server never infers state from commands it sent). Unicode display names, folders, semantic device types, tags, and map placements are server-side metadata, so firmware identifiers and MQTT topics remain stable.
@@ -17,7 +17,7 @@ Nodes never talk to the web UI directly. The backend is the only server-side MQT
 - Node and capability display names support normalized Unicode and are not overwritten by discovery.
 - Relay capabilities can be classified and tagged, then controlled in bulk for the current folder or its subtree.
 - Every control request and dispatch result is audited. `AUDIT_VIEW` grants scoped access through the global activity bar.
-- Existing flat groups are migrated to folders by Flyway V3. A node that belonged to multiple groups receives a dedicated import folder whose generated roles preserve the old effective permissions.
+- MySQL starts from a Flyway baseline containing the current folder-tree authorization model.
 
 ## Layout
 
@@ -39,11 +39,11 @@ cp .env.example .env         # then edit every password
 docker compose up -d
 ```
 
-Web UI: `http://localhost/` · API: `http://localhost/api/v1` · MQTT: `1883`
+Web UI: `http://localhost/` · API: `http://localhost/api/v1` · Swagger UI: `http://localhost/swagger-ui.html` · MQTT: `1883`
 
 The `mosquitto-init` service creates or updates the server credential without deleting node users. The first server start creates the bootstrap administrator from `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD`; change that temporary password after login.
 
-To use an external PostgreSQL instance, clear `COMPOSE_PROFILES` and set `DB_URL`, `DB_USER`, and `DB_PASSWORD` in `.env`. To add a node MQTT user:
+To use an external MySQL 8.4 instance, clear `COMPOSE_PROFILES` and set `DB_URL`, `DB_USER`, and `DB_PASSWORD` in `.env`. To add a node MQTT user:
 
 ```bash
 docker compose exec mosquitto mosquitto_passwd -b /mosquitto/passwd/passwd node-esp32s3-xxxxxx <password>

@@ -21,10 +21,10 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String username;
 
-    @Column(name = "display_name", nullable = false)
+    @Column(name = "display_name", nullable = false, length = 200)
     private String displayName;
 
     @Column(name = "password_hash", nullable = false)

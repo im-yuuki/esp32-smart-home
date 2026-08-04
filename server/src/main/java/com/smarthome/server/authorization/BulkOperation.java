@@ -27,18 +27,18 @@ public class BulkOperation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "batch_id", nullable = false, unique = true)
+    @Column(name = "batch_id", nullable = false, unique = true, length = 36)
     private String batchId;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "actor_user_id", nullable = false)
     private AppUser actor;
-    @Column(name = "idempotency_key", nullable = false)
+    @Column(name = "idempotency_key", nullable = false, length = 100)
     private String idempotencyKey;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "json")
     private String response;
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;

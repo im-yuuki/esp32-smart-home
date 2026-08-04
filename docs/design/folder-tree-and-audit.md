@@ -20,4 +20,4 @@ Legacy group tables remain as migration history but application code no longer r
 
 ## Firmware boundary
 
-No firmware change is required. Unicode names, device types, tags, and map coordinates stay in PostgreSQL. This avoids NVS byte limits and prevents display metadata from changing MQTT topics or being overwritten on reconnect.
+No firmware change is required. Unicode names, device types, tags, and map coordinates stay in MySQL. This avoids NVS byte limits and prevents display metadata from changing MQTT topics or being overwritten on reconnect.

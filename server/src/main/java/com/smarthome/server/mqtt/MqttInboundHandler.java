@@ -22,7 +22,7 @@ import tools.jackson.databind.json.JsonMapper;
  * Routes every message of the {@code home/#} subscription. The whole body is wrapped in
  * try/catch-log: an exception thrown into the Paho callback must never kill message
  * delivery. Payloads are parsed once into a Jackson 3 {@link JsonNode}; the same node
- * feeds the DB write (raw JSON string for JSONB columns) and the WS event.
+ * feeds the DB write (raw JSON string for JSON columns) and the WS event.
  */
 @Component
 @RequiredArgsConstructor

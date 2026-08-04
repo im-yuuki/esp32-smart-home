@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * <p>Capabilities are kept as raw maps on purpose: each entry carries the fixed keys
  * {@code type}/{@code channel}/{@code name} plus arbitrary extra fields ({@code kind},
- * {@code model}, {@code interval_s}, future keys) that flow into the {@code meta} JSONB
+ * {@code model}, {@code interval_s}, future keys) that flow into the {@code meta} JSON
  * column — forward-compatible with unknown firmware fields by construction.</p>
  */
 public record DiscoveryPayload(

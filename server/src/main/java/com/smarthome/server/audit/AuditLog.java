@@ -35,23 +35,22 @@ public class AuditLog {
     @JoinColumn(name = "actor_user_id")
     private AppUser actor;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String action;
 
-    @Column(name = "target_type", nullable = false)
+    @Column(name = "target_type", nullable = false, length = 32)
     private String targetType;
 
     @Column(name = "target_id")
     private String targetId;
 
-    @Column(name = "correlation_id")
+    @Column(name = "correlation_id", length = 36)
     private String correlationId;
 
-    @Column(name = "batch_id")
+    @Column(name = "batch_id", length = 36)
     private String batchId;
 
-    @JdbcTypeCode(SqlTypes.INET)
-    @Column(columnDefinition = "inet")
+    @Column(length = 45)
     private String ip;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -63,7 +62,7 @@ public class AuditLog {
     private Folder folder;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "json")
     private String details = "{}";
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)

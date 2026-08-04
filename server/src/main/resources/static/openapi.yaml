@@ -1,0 +1,1531 @@
+openapi: 3.0.3
+info:
+  title: Smart Home Server API
+  version: v1
+  description: |
+    REST contract for the ESP32 smart-home backend.
+
+    Application responses use an envelope containing `data` and `error`. Authentication
+    is session based. Call `GET /api/v1/auth/csrf`, then send the raw `XSRF-TOKEN` cookie
+    value in the returned header (normally `X-XSRF-TOKEN`) on every POST, PUT, PATCH, and
+    DELETE request. The masked token in the JSON body is intended for STOMP CONNECT.
+servers:
+  - url: /
+tags:
+  - name: Authentication
+  - name: Nodes
+  - name: Telemetry
+  - name: Folders
+  - name: Audit
+  - name: Administration
+  - name: Health
+security:
+  - sessionCookie: []
+paths:
+  /api/v1/auth/csrf:
+    get:
+      tags: [Authentication]
+      operationId: getCsrfToken
+      summary: Get a CSRF token
+      security: []
+      responses:
+        '200':
+          description: CSRF token and the header name expected by the server
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CsrfToken'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Create an authenticated session
+      description: The successful response sets the `JSESSIONID` cookie.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session created
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Session cookie
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthenticationResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Destroy the authenticated session
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      responses:
+        '200':
+          description: Session destroyed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LogoutResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      operationId: getCurrentUser
+      summary: Get the current account and folder memberships
+      responses:
+        '200':
+          description: Current account
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/auth/change-password:
+    post:
+      tags: [Authentication]
+      operationId: changePassword
+      summary: Change the current user's password
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/EmptySuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/nodes:
+    get:
+      tags: [Nodes]
+      operationId: listNodes
+      summary: List approved nodes visible to the current user
+      responses:
+        '200':
+          description: Visible nodes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Node' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/nodes/{nodeId}:
+    parameters:
+      - $ref: '#/components/parameters/NodeId'
+    get:
+      tags: [Nodes]
+      operationId: getNode
+      summary: Get an approved node
+      responses:
+        '200':
+          description: Node details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Node' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/nodes/{nodeId}/relays/{channel}/command:
+    parameters:
+      - $ref: '#/components/parameters/NodeId'
+      - $ref: '#/components/parameters/Channel'
+    post:
+      tags: [Nodes]
+      operationId: sendRelayCommand
+      summary: Publish a relay command
+      description: Acceptance only confirms MQTT publication; reported state arrives asynchronously.
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RelayCommandRequest' }
+      responses:
+        '202':
+          description: Command accepted for publication
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/RelayCommandAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/v1/nodes/{nodeId}/sensors/latest:
+    parameters:
+      - $ref: '#/components/parameters/NodeId'
+    get:
+      tags: [Telemetry]
+      operationId: getLatestSensorReading
+      summary: Get the latest sensor reading
+      responses:
+        '200':
+          description: Latest reading; data is null when no reading exists
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        allOf:
+                          - $ref: '#/components/schemas/SensorReading'
+                        nullable: true
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/nodes/{nodeId}/sensors/history:
+    parameters:
+      - $ref: '#/components/parameters/NodeId'
+    get:
+      tags: [Telemetry]
+      operationId: getSensorHistory
+      summary: Get sensor history
+      description: Defaults to the last 24 hours and returns at most 10,000 readings. `bucket` is currently ignored.
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: bucket
+          in: query
+          deprecated: true
+          description: Reserved for future aggregation; currently ignored.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Readings sorted by timestamp ascending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        maxItems: 10000
+                        items: { $ref: '#/components/schemas/SensorReading' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/folders:
+    get:
+      tags: [Folders]
+      operationId: listFolders
+      summary: List folders visible to the current user
+      responses:
+        '200':
+          description: Visible folder tree entries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Folder' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/folders/{folderId}/map:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+    get:
+      tags: [Folders]
+      operationId: getFolderMap
+      summary: Get a folder map and its nodes
+      responses:
+        '200':
+          description: Folder map
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/FolderMap' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/device-types:
+    get:
+      tags: [Folders]
+      operationId: listDeviceTypes
+      summary: List capability device types
+      responses:
+        '200':
+          description: Device types
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/DeviceType' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/tags:
+    get:
+      tags: [Folders]
+      operationId: listTags
+      summary: List capability tags
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Tag' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/folders/{folderId}/bulk-actions/preview:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+    post:
+      tags: [Folders]
+      operationId: previewBulkAction
+      summary: Preview a bulk relay action
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkActionRequest' }
+      responses:
+        '200':
+          description: Matching and dispatchable targets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BulkPreview' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/folders/{folderId}/bulk-actions:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+    post:
+      tags: [Folders]
+      operationId: executeBulkAction
+      summary: Execute an idempotent bulk relay action
+      parameters:
+        - $ref: '#/components/parameters/CsrfHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkActionRequest' }
+      responses:
+        '202':
+          description: Bulk action accepted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BulkResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/audit-logs:
+    get:
+      tags: [Audit]
+      operationId: searchAuditLogs
+      summary: Search audit logs
+      parameters:
+        - name: folderId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: includeDescendants
+          in: query
+          schema: { type: boolean, default: false }
+        - name: actor
+          in: query
+          schema: { type: string }
+        - name: node
+          in: query
+          schema: { type: string }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          description: Zero-based page; negative values are clamped to zero.
+          schema: { type: integer, format: int32, default: 0 }
+        - name: size
+          in: query
+          description: Page size clamped to the range 1 through 200.
+          schema: { type: integer, format: int32, default: 50 }
+      responses:
+        '200':
+          description: Audit entries sorted by creation time descending
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AuditPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/users:
+    get:
+      tags: [Administration]
+      operationId: adminListUsers
+      summary: List users
+      responses:
+        '200':
+          $ref: '#/components/responses/UserListSuccess'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      operationId: adminCreateUser
+      summary: Create a user
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/UserSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/admin/users/{id}/enabled:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Administration]
+      operationId: adminSetUserEnabled
+      summary: Enable or disable a user
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SetEnabledRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/UserSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/permissions:
+    get:
+      tags: [Administration]
+      operationId: adminListPermissions
+      summary: List permission codes
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Permission' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/admin/folders:
+    get:
+      tags: [Administration]
+      operationId: adminListFolders
+      summary: List all folders with roles and members
+      responses:
+        '200':
+          $ref: '#/components/responses/AdminFolderListSuccess'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Administration]
+      operationId: adminCreateFolder
+      summary: Create a folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveFolderRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/AdminFolderSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/folders/{folderId}:
+    parameters: [{ $ref: '#/components/parameters/FolderId' }]
+    put:
+      tags: [Administration]
+      operationId: adminUpdateFolder
+      summary: Update a folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveFolderRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/AdminFolderSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Administration]
+      operationId: adminDeleteFolder
+      summary: Delete an empty folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/folders/{folderId}/move:
+    parameters: [{ $ref: '#/components/parameters/FolderId' }]
+    post:
+      tags: [Administration]
+      operationId: adminMoveFolder
+      summary: Move a folder in the tree
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MoveFolderRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/AdminFolderSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/folders/{folderId}/template:
+    parameters: [{ $ref: '#/components/parameters/FolderId' }]
+    put:
+      tags: [Administration]
+      operationId: adminSetFolderTemplate
+      summary: Set folder template metadata
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TemplateRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/AdminFolderSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/v1/admin/folders/{folderId}/placements:
+    parameters: [{ $ref: '#/components/parameters/FolderId' }]
+    put:
+      tags: [Administration]
+      operationId: adminReplacePlacements
+      summary: Replace all placements in a folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/PlacementRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/v1/admin/folders/{folderId}/placements/{capabilityId}:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+      - $ref: '#/components/parameters/CapabilityId'
+    put:
+      tags: [Administration]
+      operationId: adminUpsertPlacement
+      summary: Upsert one capability placement
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlacementRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/v1/admin/folders/{folderId}/roles:
+    parameters: [{ $ref: '#/components/parameters/FolderId' }]
+    post:
+      tags: [Administration]
+      operationId: adminCreateRole
+      summary: Create a folder role
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRoleRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/RoleSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/folders/{folderId}/roles/{roleId}:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+      - $ref: '#/components/parameters/RoleId'
+    put:
+      tags: [Administration]
+      operationId: adminUpdateRole
+      summary: Update a folder role
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SaveRoleRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/RoleSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/folders/{folderId}/members/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/FolderId'
+      - $ref: '#/components/parameters/UserId'
+    put:
+      tags: [Administration]
+      operationId: adminAssignFolderRole
+      summary: Assign a folder role to a user
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignRoleRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Administration]
+      operationId: adminRemoveFolderMember
+      summary: Remove a folder member
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/nodes:
+    get:
+      tags: [Administration]
+      operationId: adminListNodes
+      summary: List nodes by approval status
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ApprovalStatus'
+          description: Defaults to PENDING.
+      responses:
+        '200':
+          $ref: '#/components/responses/NodeApprovalListSuccess'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/admin/nodes/{nodeId}/approve:
+    parameters: [{ $ref: '#/components/parameters/NodeId' }]
+    post:
+      tags: [Administration]
+      operationId: adminApproveNode
+      summary: Approve a node into a folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FolderAssignmentRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/NodeApprovalSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/nodes/{nodeId}/reject:
+    parameters: [{ $ref: '#/components/parameters/NodeId' }]
+    post:
+      tags: [Administration]
+      operationId: adminRejectNode
+      summary: Reject a node
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      responses:
+        '200': { $ref: '#/components/responses/NodeApprovalSuccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/nodes/{nodeId}/folder:
+    parameters: [{ $ref: '#/components/parameters/NodeId' }]
+    put:
+      tags: [Administration]
+      operationId: adminSetNodeFolder
+      summary: Move an approved node to another folder
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FolderAssignmentRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/NodeApprovalSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/nodes/{nodeId}/display-name:
+    parameters: [{ $ref: '#/components/parameters/NodeId' }]
+    patch:
+      tags: [Administration]
+      operationId: adminSetNodeDisplayName
+      summary: Set or clear a node display name
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DisplayNameRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/NodeApprovalSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/capabilities/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Administration]
+      operationId: adminUpdateCapability
+      summary: Update capability metadata
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CapabilityMetadataRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/EmptySuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/admin/device-types:
+    post:
+      tags: [Administration]
+      operationId: adminCreateDeviceType
+      summary: Create a device type
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceTypeRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/IdSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/v1/admin/tags:
+    post:
+      tags: [Administration]
+      operationId: adminCreateTag
+      summary: Create a tag
+      parameters: [{ $ref: '#/components/parameters/CsrfHeader' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TagRequest' }
+      responses:
+        '200': { $ref: '#/components/responses/IdSuccess' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /actuator/health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Check application health
+      security: []
+      responses:
+        '200':
+          description: Application is healthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+        '503':
+          description: Application is unhealthy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Session cookie returned by the login endpoint.
+  parameters:
+    CsrfHeader:
+      name: X-XSRF-TOKEN
+      in: header
+      required: true
+      description: Raw value of the `XSRF-TOKEN` cookie set by `GET /api/v1/auth/csrf`.
+      schema: { type: string }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    FolderId:
+      name: folderId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    RoleId:
+      name: roleId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    CapabilityId:
+      name: capabilityId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    NodeId:
+      name: nodeId
+      in: path
+      required: true
+      schema: { type: string }
+    Channel:
+      name: channel
+      in: path
+      required: true
+      schema: { type: integer, format: int32 }
+  responses:
+    EmptySuccess:
+      description: Operation completed
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { type: object, nullable: true }
+    IdSuccess:
+      description: Created resource identifier
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { type: integer, format: int64 }
+    UserSuccess:
+      description: User
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+    UserListSuccess:
+      description: Users
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+    AdminFolderSuccess:
+      description: Administrative folder
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AdminFolder' }
+    AdminFolderListSuccess:
+      description: Administrative folders
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AdminFolder' }
+    RoleSuccess:
+      description: Folder role
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Role' }
+    NodeApprovalSuccess:
+      description: Node approval record
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data: { $ref: '#/components/schemas/NodeApproval' }
+    NodeApprovalListSuccess:
+      description: Node approval records
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiEnvelope'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/NodeApproval' }
+    BadRequest:
+      description: Malformed input or validation failure
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: Authentication required or credentials invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: CSRF validation, account state, permission, or domain rule failure
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: Resource absent or hidden by authorization
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+  schemas:
+    ApiEnvelope:
+      type: object
+      required: [data, error]
+      properties:
+        data:
+          description: Operation-specific payload; null for operations without a response body.
+        error:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ApiError'
+          nullable: true
+    ErrorEnvelope:
+      type: object
+      required: [data, error]
+      properties:
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          $ref: '#/components/schemas/ApiError'
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [VALIDATION_ERROR, BAD_REQUEST, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, INTERNAL_ERROR]
+        message: { type: string }
+    CsrfToken:
+      type: object
+      required: [token, headerName]
+      properties:
+        token: { type: string, description: XOR-masked token for STOMP CONNECT. }
+        headerName: { type: string, example: X-XSRF-TOKEN }
+    LoginRequest:
+      type: object
+      properties:
+        username: { type: string }
+        password: { type: string, format: password }
+    AuthenticationResult:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated: { type: boolean, enum: [true] }
+    LogoutResult:
+      type: object
+      required: [loggedOut]
+      properties:
+        loggedOut: { type: boolean, enum: [true] }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string, format: password, minLength: 1 }
+        newPassword: { type: string, format: password, minLength: 12, maxLength: 200 }
+    CurrentUser:
+      type: object
+      required: [id, username, displayName, systemAdmin, mustChangePassword, auditAccess, folders]
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        displayName: { type: string }
+        systemAdmin: { type: boolean }
+        mustChangePassword: { type: boolean }
+        auditAccess: { type: boolean }
+        folders:
+          type: array
+          items: { $ref: '#/components/schemas/FolderMembership' }
+    FolderMembership:
+      type: object
+      required: [id, name, roleName]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        roleName: { type: string }
+    PermissionCode:
+      type: string
+      enum: [NODE_VIEW, NODE_CONTROL, TELEMETRY_VIEW, AUDIT_VIEW]
+    Node:
+      type: object
+      required: [nodeId, displayName, discoveryName, room, fwVersion, ip, online, lastSeen, capabilities, folderId, permissions]
+      properties:
+        nodeId: { type: string }
+        displayName: { type: string, nullable: true }
+        discoveryName: { type: string, nullable: true }
+        room: { type: string }
+        fwVersion: { type: string, nullable: true }
+        ip: { type: string, nullable: true, description: IPv4 or IPv6 address }
+        online: { type: boolean }
+        lastSeen: { type: string, format: date-time, nullable: true }
+        capabilities:
+          type: array
+          items: { $ref: '#/components/schemas/Capability' }
+        folderId: { type: integer, format: int64 }
+        permissions:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionCode' }
+    Capability:
+      type: object
+      required: [id, type, channel, displayName, discoveryName, deviceType, tags, meta, lastState]
+      properties:
+        id: { type: integer, format: int64 }
+        type: { type: string, description: Typically relay or sensor }
+        channel: { type: integer, format: int32 }
+        displayName: { type: string, nullable: true }
+        discoveryName: { type: string, nullable: true }
+        deviceType:
+          type: object
+          allOf: [{ $ref: '#/components/schemas/DeviceType' }]
+          nullable: true
+        tags:
+          type: array
+          items: { $ref: '#/components/schemas/Tag' }
+        meta:
+          description: Arbitrary JSON discovery metadata.
+        lastState:
+          description: Arbitrary JSON state reported by the node.
+    DeviceType:
+      type: object
+      required: [id, name, description]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: string, nullable: true }
+    Tag:
+      type: object
+      required: [id, name, color]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        color: { type: string, nullable: true }
+    RelayCommandRequest:
+      type: object
+      required: [state]
+      properties:
+        state: { type: string, enum: [ON, OFF] }
+    RelayCommandAccepted:
+      type: object
+      required: [accepted, state]
+      properties:
+        accepted: { type: boolean, enum: [true] }
+        state: { type: string, enum: [ON, OFF] }
+    SensorReading:
+      type: object
+      required: [temperature, humidity, ts]
+      properties:
+        temperature: { type: number, format: double, nullable: true }
+        humidity: { type: number, format: double, nullable: true }
+        ts: { type: string, format: date-time }
+    Folder:
+      type: object
+      required: [id, parentId, name, icon, templateType, templateConfig, sortOrder, permissions]
+      properties:
+        id: { type: integer, format: int64 }
+        parentId: { type: integer, format: int64, nullable: true }
+        name: { type: string }
+        icon: { type: string, maxLength: 100, pattern: '^i-lucide-[a-z0-9-]+$' }
+        templateType: { type: string, nullable: true }
+        templateConfig: { description: Arbitrary JSON template configuration. }
+        sortOrder: { type: integer, format: int32 }
+        permissions:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionCode' }
+    Placement:
+      type: object
+      required: [id, capabilityId, label, x, y, width, height, sortOrder, config]
+      properties:
+        id: { type: integer, format: int64 }
+        capabilityId: { type: integer, format: int64, nullable: true }
+        label: { type: string, nullable: true }
+        x: { type: number, format: double }
+        y: { type: number, format: double }
+        width: { type: number, format: double }
+        height: { type: number, format: double }
+        sortOrder: { type: integer, format: int32 }
+        config: { description: Arbitrary JSON placement configuration. }
+    FolderMap:
+      type: object
+      required: [folder, nodes, placements]
+      properties:
+        folder: { $ref: '#/components/schemas/Folder' }
+        nodes:
+          type: array
+          items: { $ref: '#/components/schemas/Node' }
+        placements:
+          type: array
+          items: { $ref: '#/components/schemas/Placement' }
+    BulkActionRequest:
+      type: object
+      required: [state, idempotencyKey]
+      properties:
+        includeDescendants: { type: boolean, default: false }
+        deviceTypeIds:
+          type: array
+          nullable: true
+          uniqueItems: true
+          items: { type: integer, format: int64 }
+        tagIds:
+          type: array
+          nullable: true
+          uniqueItems: true
+          items: { type: integer, format: int64 }
+        tagMatch: { type: string, enum: [ANY, ALL], nullable: true, default: ANY }
+        state: { type: string, enum: [ON, OFF] }
+        idempotencyKey: { type: string, minLength: 1, maxLength: 100 }
+    BulkTarget:
+      type: object
+      required: [capabilityId, nodeId, channel, online, status]
+      properties:
+        capabilityId: { type: integer, format: int64 }
+        nodeId: { type: string }
+        channel: { type: integer, format: int32 }
+        online: { type: boolean }
+        status: { type: string, enum: [READY, SKIPPED_OFFLINE, DISPATCHED, FAILED] }
+    BulkPreview:
+      type: object
+      required: [matched, dispatchable, skipped, results]
+      properties:
+        matched: { type: integer, format: int32 }
+        dispatchable: { type: integer, format: int32 }
+        skipped: { type: integer, format: int32 }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/BulkTarget' }
+    BulkResult:
+      type: object
+      required: [batchId, matched, dispatched, skipped, failed, results]
+      properties:
+        batchId: { type: string, format: uuid }
+        matched: { type: integer, format: int32 }
+        dispatched: { type: integer, format: int32 }
+        skipped: { type: integer, format: int32 }
+        failed: { type: integer, format: int32 }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/BulkTarget' }
+    User:
+      type: object
+      required: [id, username, displayName, enabled, systemAdmin, mustChangePassword, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        displayName: { type: string }
+        enabled: { type: boolean }
+        systemAdmin: { type: boolean }
+        mustChangePassword: { type: boolean }
+        createdAt: { type: string, format: date-time, nullable: true }
+    CreateUserRequest:
+      type: object
+      required: [username, displayName, temporaryPassword]
+      properties:
+        username: { type: string, minLength: 1, maxLength: 100 }
+        displayName: { type: string, minLength: 1, maxLength: 200 }
+        temporaryPassword: { type: string, format: password, minLength: 12, maxLength: 200 }
+        systemAdmin: { type: boolean, default: false }
+    SetEnabledRequest:
+      type: object
+      properties:
+        enabled: { type: boolean, default: false }
+    Permission:
+      type: object
+      required: [code]
+      properties:
+        code: { $ref: '#/components/schemas/PermissionCode' }
+    Role:
+      type: object
+      required: [id, name, permissions]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        permissions:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionCode' }
+    SaveRoleRequest:
+      type: object
+      required: [name, permissions]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        permissions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/PermissionCode' }
+    AssignRoleRequest:
+      type: object
+      required: [roleId]
+      properties:
+        roleId: { type: integer, format: int64 }
+    Member:
+      type: object
+      required: [userId, username, displayName, roleId, roleName]
+      properties:
+        userId: { type: integer, format: int64 }
+        username: { type: string }
+        displayName: { type: string }
+        roleId: { type: integer, format: int64 }
+        roleName: { type: string }
+    AdminFolder:
+      type: object
+      required: [id, parentId, name, icon, templateType, templateConfig, sortOrder, roles, members, nodeIds]
+      properties:
+        id: { type: integer, format: int64 }
+        parentId: { type: integer, format: int64, nullable: true }
+        name: { type: string }
+        icon: { type: string }
+        templateType: { type: string, nullable: true }
+        templateConfig: { description: Arbitrary JSON template configuration. }
+        sortOrder: { type: integer, format: int32 }
+        roles:
+          type: array
+          items: { $ref: '#/components/schemas/Role' }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/Member' }
+        nodeIds:
+          type: array
+          items: { type: string }
+    SaveFolderRequest:
+      type: object
+      required: [name]
+      properties:
+        parentId: { type: integer, format: int64, nullable: true }
+        name: { type: string, minLength: 1, maxLength: 100 }
+        icon: { type: string, nullable: true, maxLength: 100, pattern: '^i-lucide-[a-z0-9-]+$' }
+        sortOrder: { type: integer, format: int32, default: 0 }
+    MoveFolderRequest:
+      type: object
+      properties:
+        parentId: { type: integer, format: int64, nullable: true, description: Null moves the folder to the root. }
+    TemplateRequest:
+      type: object
+      properties:
+        templateType:
+          type: string
+          nullable: true
+          enum: [OUTDOOR, BUILDING, FLOOR, CORRIDOR, ROOM]
+        templateConfig:
+          type: string
+          nullable: true
+          description: JSON serialized as a string; null or blank means an empty object.
+    PlacementRequest:
+      type: object
+      properties:
+        id: { type: integer, format: int64, nullable: true }
+        capabilityId: { type: integer, format: int64, nullable: true }
+        label: { type: string, nullable: true, maxLength: 100 }
+        x: { type: number, format: double, minimum: 0, maximum: 100, default: 0 }
+        y: { type: number, format: double, minimum: 0, maximum: 100, default: 0 }
+        width: { type: number, format: double, exclusiveMinimum: true, minimum: 0, default: 0 }
+        height: { type: number, format: double, exclusiveMinimum: true, minimum: 0, default: 0 }
+        sortOrder: { type: integer, format: int32, default: 0 }
+        config:
+          type: string
+          nullable: true
+          description: JSON serialized as a string; null or blank means an empty object.
+    ApprovalStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+      default: PENDING
+    NodeApproval:
+      type: object
+      required: [nodeId, discoveryName, displayName, room, fwVersion, ip, online, createdAt, approvalStatus, folderId]
+      properties:
+        nodeId: { type: string }
+        discoveryName: { type: string, nullable: true }
+        displayName: { type: string, nullable: true }
+        room: { type: string }
+        fwVersion: { type: string, nullable: true }
+        ip: { type: string, nullable: true }
+        online: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        approvalStatus: { $ref: '#/components/schemas/ApprovalStatus' }
+        folderId: { type: integer, format: int64 }
+    FolderAssignmentRequest:
+      type: object
+      required: [folderId]
+      properties:
+        folderId: { type: integer, format: int64 }
+    DisplayNameRequest:
+      type: object
+      properties:
+        displayName: { type: string, nullable: true, maxLength: 100, description: Null or blank clears the display name. }
+    CapabilityMetadataRequest:
+      type: object
+      properties:
+        displayName: { type: string, nullable: true, maxLength: 100 }
+        deviceTypeId: { type: integer, format: int64, nullable: true }
+        tagIds:
+          type: array
+          nullable: true
+          uniqueItems: true
+          items: { type: integer, format: int64 }
+    DeviceTypeRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, nullable: true }
+    TagRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        color: { type: string, nullable: true }
+    AuditLog:
+      type: object
+      required: [id, actorUserId, actorName, action, targetType, targetId, details, correlationId, batchId, ip, capabilityId, folderId, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        actorUserId: { type: integer, format: int64, nullable: true }
+        actorName: { type: string, nullable: true }
+        action: { type: string }
+        targetType: { type: string }
+        targetId: { type: string, nullable: true }
+        details: { description: Arbitrary JSON audit details. }
+        correlationId: { type: string, nullable: true }
+        batchId: { type: string, nullable: true }
+        ip: { type: string, nullable: true }
+        capabilityId: { type: integer, format: int64, nullable: true }
+        folderId: { type: integer, format: int64, nullable: true }
+        createdAt: { type: string, format: date-time }
+    Sort:
+      type: object
+      required: [empty, sorted, unsorted]
+      properties:
+        empty: { type: boolean }
+        sorted: { type: boolean }
+        unsorted: { type: boolean }
+    Pageable:
+      type: object
+      required: [pageNumber, pageSize, sort, offset, paged, unpaged]
+      properties:
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32 }
+        sort: { $ref: '#/components/schemas/Sort' }
+        offset: { type: integer, format: int64 }
+        paged: { type: boolean }
+        unpaged: { type: boolean }
+    AuditPage:
+      type: object
+      required: [content, pageable, last, totalPages, totalElements, size, number, sort, first, numberOfElements, empty]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLog' }
+        pageable: { $ref: '#/components/schemas/Pageable' }
+        last: { type: boolean }
+        totalPages: { type: integer, format: int32 }
+        totalElements: { type: integer, format: int64 }
+        size: { type: integer, format: int32 }
+        number: { type: integer, format: int32 }
+        sort: { $ref: '#/components/schemas/Sort' }
+        first: { type: boolean }
+        numberOfElements: { type: integer, format: int32 }
+        empty: { type: boolean }
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, example: UP }
+      additionalProperties: true

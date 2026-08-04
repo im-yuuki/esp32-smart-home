@@ -22,10 +22,10 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * JSONB columns are mapped as raw {@code String} + {@code @JdbcTypeCode(SqlTypes.JSON)} on
+ * JSON columns are mapped as raw {@code String} + {@code @JdbcTypeCode(SqlTypes.JSON)} on
  * purpose: Hibernate 7.4's auto-detected Jackson format mapper targets Jackson 2, which is
  * not on the Boot 4 classpath. With a String attribute no format mapper is involved —
- * Hibernate passes the text through as jsonb, and DTOs re-emit it verbatim via
+ * Hibernate passes the text through as JSON, and DTOs re-emit it verbatim via
  * {@code @JsonRawValue}.
  */
 @Entity
@@ -50,10 +50,10 @@ public class Capability {
     @Column(nullable = false)
     private int channel;
 
-    @Column(name = "discovery_name")
+    @Column(name = "discovery_name", length = 100)
     private String discoveryName;
 
-    @Column(name = "display_name")
+    @Column(name = "display_name", length = 100)
     private String displayName;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -67,10 +67,10 @@ public class Capability {
     private Set<Tag> tags = new HashSet<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Column(columnDefinition = "json", nullable = false)
     private String meta = "{}";
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "last_state", columnDefinition = "jsonb")
+    @Column(name = "last_state", columnDefinition = "json")
     private String lastState;
 }

@@ -21,7 +21,7 @@ jobs:
           java-version: "25"
           cache: maven
           cache-dependency-path: server/pom.xml
-      # Unit tests are self-contained (no DB/broker needed): TopicParser + payload mapping.
+      # Testcontainers validates the Flyway baseline on MySQL 8.4 when Docker is available.
       - name: Build and test
         run: mvn -B verify
       - uses: actions/upload-artifact@v4

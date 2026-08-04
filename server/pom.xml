@@ -78,13 +78,13 @@
       <artifactId>flyway-core</artifactId>
     </dependency>
     <dependency>
-      <!-- Flyway 10+ split PostgreSQL support out of core -->
+      <!-- Flyway 10+ split MySQL support out of core -->
       <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-postgresql</artifactId>
+      <artifactId>flyway-mysql</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
       <scope>runtime</scope>
     </dependency>
 
@@ -111,6 +111,16 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-mysql</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

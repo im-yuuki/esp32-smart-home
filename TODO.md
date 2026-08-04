@@ -26,7 +26,7 @@
 
 - [x] Kết nối MQTT và định tuyến các topic status, discovery, relay state và sensor state.
 - [x] Tự động đăng ký/cập nhật node và reconcile capability từ retained discovery message.
-- [x] Lưu node, capability và dữ liệu cảm biến trong PostgreSQL bằng Flyway migration.
+- [x] Lưu node, capability và dữ liệu cảm biến trong MySQL 8.4 bằng Flyway baseline.
 - [x] Cung cấp REST API lấy danh sách/chi tiết node và gửi lệnh relay với phản hồi `202 Accepted`.
 - [x] Giữ state topic làm nguồn sự thật, không tự giả định relay đã đổi trạng thái sau khi gửi lệnh.
 - [x] Cung cấp API lấy telemetry mới nhất và lịch sử thô trong 24 giờ, giới hạn 10.000 bản ghi.
@@ -48,7 +48,7 @@
 
 ### Triển khai và CI
 
-- [x] Docker Compose cho PostgreSQL, Mosquitto, backend và web UI/nginx.
+- [x] Docker Compose cho MySQL 8.4, Mosquitto, backend và web UI/nginx.
 - [x] Nginx phục vụ SPA và reverse proxy cùng origin cho `/api` và `/ws`.
 - [x] Mosquitto dùng username/password, persistence và không cho phép anonymous.
 - [x] Có hướng dẫn build/run riêng cho firmware, backend, web UI và deployment.
@@ -71,7 +71,7 @@
 
 ### Chất lượng và tự động hóa kiểm thử
 
-- [ ] Bổ sung test backend cho repository, service, controller, MQTT integration và PostgreSQL migration.
+- [ ] Bổ sung test backend cho repository, service, controller và MQTT integration; migration MySQL đã có Testcontainers smoke test.
 - [ ] Bổ sung unit/component test cho Pinia store, relay timeout/rollback và xử lý WebSocket reconnect.
 - [ ] Bổ sung test end-to-end tự động cho luồng discovery -> dashboard -> relay command -> state event.
 - [ ] Bổ sung test firmware hoặc hardware-in-the-loop cho relay, nút bấm, NVS, Wi-Fi reconnect và MQTT reconnect.
@@ -93,7 +93,7 @@
 - [ ] Giới hạn CORS/WebSocket allowed origins thay cho wildcard dùng trong môi trường phát triển.
 - [ ] Bật TLS cho kết nối MQTT và quản lý certificate/secret khi triển khai.
 - [ ] Thực hiện aggregation telemetry theo tham số `bucket`; hiện API nhận nhưng bỏ qua tham số này.
-- [ ] Thêm tài liệu OpenAPI/springdoc khi phiên bản tương thích Spring Boot 4.1 sẵn sàng.
+- [x] Cung cấp OpenAPI tĩnh đầy đủ cho REST/auth/health và hiển thị bằng Swagger UI.
 
 ## Triển khai sau - Giai đoạn 3 và mở rộng
 

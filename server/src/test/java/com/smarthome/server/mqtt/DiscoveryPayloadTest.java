@@ -45,7 +45,7 @@ class DiscoveryPayloadTest {
         Map<String, Object> sensor = payload.capabilities().get(2);
         assertThat(sensor.get("type")).isEqualTo("sensor");
         assertThat(sensor.get("name")).isNull();
-        // extra fields survive untouched -> they become the capability's meta JSONB
+        // extra fields survive untouched -> they become the capability's meta JSON
         assertThat(sensor.get("kind")).isEqualTo("temperature_humidity");
         assertThat(sensor.get("model")).isEqualTo("SHT31");
         assertThat(((Number) sensor.get("interval_s")).intValue()).isEqualTo(30);

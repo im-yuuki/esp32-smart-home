@@ -75,7 +75,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/api/v1/auth/csrf",
                                 "/api/v1/auth/login", "/ws/**",
                                 // springdoc: API docs + swagger-ui are public (LAN deployment)
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                                "/openapi.yaml", "/v3/api-docs/**",
+                                "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionFixation(fixation -> fixation.changeSessionId())

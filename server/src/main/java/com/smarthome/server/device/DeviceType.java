@@ -19,7 +19,7 @@ public class DeviceType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
     private String description;
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)

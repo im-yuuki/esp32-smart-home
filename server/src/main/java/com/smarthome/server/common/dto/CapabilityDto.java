@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.util.List;
 
 /**
- * {@code meta} and {@code lastState} are raw JSONB text from the DB, re-emitted verbatim
+ * {@code meta} and {@code lastState} are raw JSON text from the DB, re-emitted verbatim
  * via {@code @JsonRawValue} (annotations stay {@code com.fasterxml} under Jackson 3).
  */
 public record CapabilityDto(

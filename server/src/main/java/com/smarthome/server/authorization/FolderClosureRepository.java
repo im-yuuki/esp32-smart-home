@@ -20,7 +20,7 @@ public interface FolderClosureRepository extends JpaRepository<FolderClosure, Fo
     void insertSelf(Long folderId);
 
     @Modifying
-    @Query(value = "delete from folder_closure where descendant_id in (select descendant_id from folder_closure where ancestor_id = :folderId) and ancestor_id in (select ancestor_id from folder_closure where descendant_id = :folderId and ancestor_id <> descendant_id)", nativeQuery = true)
+    @Query(value = "delete path from folder_closure path join folder_closure subtree on subtree.ancestor_id = :folderId and subtree.descendant_id = path.descendant_id join folder_closure ancestors on ancestors.descendant_id = :folderId and ancestors.ancestor_id = path.ancestor_id where ancestors.ancestor_id <> ancestors.descendant_id", nativeQuery = true)
     void detachSubtree(Long folderId);
 
     @Modifying
