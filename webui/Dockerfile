@@ -4,9 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-# build = vite build + vue-tsc type-check (sequential: the @nuxt/ui plugin
-# generates auto-imports.d.ts/components.d.ts during the build step, which the
-# type-check needs on a fresh tree).
+# build = vite build + vue-tsc type-check.
 RUN npm run build
 
 FROM nginx:alpine

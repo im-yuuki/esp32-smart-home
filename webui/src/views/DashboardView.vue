@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFacilitiesStore } from '@/stores/facilities'
+import AppIcon from '@/components/AppIcon.vue'
 
 const facilities = useFacilitiesStore()
 const router = useRouter()
@@ -13,5 +14,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="grid min-h-[60vh] place-items-center"><div class="space-y-3 text-center"><UIcon name="i-lucide-loader-circle" class="mx-auto size-6 animate-spin text-primary" /><p class="text-sm text-muted">{{ $t('browse.loading') }}</p></div></div>
+  <div class="grid min-h-[60vh] place-items-center"><AppIcon name="i-lucide-loader-circle" class="size-5 animate-spin" /><span class="sr-only">{{ $t('browse.loading') }}</span></div>
 </template>

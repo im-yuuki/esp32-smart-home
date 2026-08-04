@@ -31,7 +31,7 @@ jobs:
           retention-days: 14
 
   webui:
-    name: webui (Vue 3 + Nuxt UI, Node 26)
+    name: webui (Vue 3 + shadcn-vue, Node 26)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,8 +44,7 @@ jobs:
           cache: npm
           cache-dependency-path: webui/package-lock.json
       - run: npm ci
-      # "build" = vite build + vue-tsc type-check (sequential; the Nuxt UI plugin
-      # generates auto-imports.d.ts/components.d.ts during the vite build)
+      # "build" = vite build + vue-tsc type-check.
       - run: npm run build
       - uses: actions/upload-artifact@v4
         with:

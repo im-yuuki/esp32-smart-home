@@ -1,6 +1,6 @@
 # ADR-0003: Nuxt UI v4 as the web UI component library
 
-**Status:** accepted (2026-07-26, user decision)
+**Status:** superseded by ADR-0006 (2026-08-05)
 
 ## Context
 The roadmap suggests PrimeVue or Naive UI ("pick one and use it consistently"). The user asked for Nuxt UI instead.

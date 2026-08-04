@@ -45,8 +45,7 @@ webui:
   script:
     - cd webui
     - npm ci
-    # "build" = vite build + vue-tsc type-check (sequential; the Nuxt UI plugin
-    # generates auto-imports.d.ts/components.d.ts during the vite build)
+    # "build" = vite build + vue-tsc type-check.
     - npm run build
   artifacts:
     paths:

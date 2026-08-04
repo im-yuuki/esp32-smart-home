@@ -3,6 +3,7 @@ export default {
     current: 'Language: English',
     switchTo: 'Switch to Vietnamese',
   },
+  theme: { switch: 'Toggle theme' },
   common: {
     dashboard: 'Dashboard',
     retry: 'Retry',
@@ -14,8 +15,9 @@ export default {
     admin: 'Admin',
     signOut: 'Sign out',
   },
+  account: { menu: 'Account menu', changePassword: 'Change password', signOut: 'Sign out', systemAdmin: 'System administrator', auditAccess: 'Audit access', standardAccess: 'Standard access' },
   navigation: { open: 'Open navigation', collapse: 'Collapse navigation', browse: 'Browse facilities', search: 'Search name, node ID, type or tag', facilities: 'Facilities', devices: 'Matching devices', logs: 'Audit logs' },
-  browse: { facility: 'Facility', loading: 'Loading facility', loadFailed: 'Could not load facility', map: 'Map', list: 'List', mapLabel: 'Map of {folder}', deviceCount: '{count} devices in this folder', noDevices: 'No devices are assigned to this folder.', emptyTitle: 'This space is ready for devices', toggleDevice: 'Toggle {name}', pending: 'Pending' },
+  browse: { facility: 'Facility', devices: 'Devices', loading: 'Loading facility', loadFailed: 'Could not load facility', map: 'Map', list: 'List', mapLabel: 'Map of {folder}', deviceCount: '{count} devices in this folder', noDevices: 'No devices are assigned to this folder.', emptyTitle: 'This space is ready for devices', toggleDevice: 'Toggle {name}', pending: 'Pending' },
   bulk: { title: 'Bulk control', descendants: 'Include descendant folders', deviceTypes: 'Device types', tags: 'Tags', targetState: 'Target state', preview: 'Preview', confirm: 'Confirm action', eligible: 'Dispatchable', offline: 'Offline', skippedLabel: 'Skipped', total: 'Matched', queued: '{count} commands dispatched.', skipped: '{count} skipped.', failed: '{count} failed.', batch: 'Batch' },
   logs: { eyebrow: 'Operations trail', title: 'Audit logs', from: 'From', to: 'To', folder: 'Folder', allFolders: 'All folders', includeDescendants: 'Include descendant folders', action: 'Action', actor: 'Actor', node: 'Node ID', filter: 'Apply filters', time: 'Time', target: 'Target', trace: 'Batch / correlation', result: 'Result', batch: 'Batch', empty: 'No audit events match these filters.', total: '{count} events' },
   activity: { eyebrow: 'Operations trail', title: 'System activity', label: 'Activity', refresh: 'Refresh activity', collapse: 'Collapse activity panel', loading: 'Loading activity...' },

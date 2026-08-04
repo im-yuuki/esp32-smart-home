@@ -1,0 +1,30 @@
+- generic [ref=e3]:
+  - link "Browse facilities" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e147]:
+    - generic [ref=e148]:
+      - link "Dashboard" [ref=e150] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e157]: Facility Console
+      - generic [ref=e158]:
+        - 'button "Language: English" [ref=e159]'
+        - button "Toggle theme" [ref=e162]
+        - button "Account menu" [ref=e167]:
+          - generic [ref=e168]: M
+  - main [ref=e169]:
+    - main [ref=e171]:
+      - generic [ref=e172]:
+        - heading "Set a new password" [level=1] [ref=e173]
+        - generic [ref=e174]:
+          - generic [ref=e175]: Current password
+          - textbox "Current password" [ref=e176]
+        - generic [ref=e177]:
+          - generic [ref=e178]: New password
+          - textbox "New password" [ref=e179]
+          - text: At least 12 characters
+        - generic [ref=e180]:
+          - generic [ref=e181]: Confirm new password
+          - textbox "Confirm new password" [ref=e182]
+        - button "Change password" [ref=e183]
+  - region "Notifications alt+T":
+    - list

@@ -4,6 +4,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { localizedError } from '@/i18n/errors'
 import { useAuthStore } from '@/stores/auth'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Label from '@/components/ui/Label.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,25 +40,13 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <main class="grid min-h-[calc(100vh-3.5rem)] place-items-center px-4 py-12">
-    <UCard class="w-full max-w-sm">
-      <template #header>
-        <div class="space-y-1">
-          <p class="text-xs font-medium uppercase tracking-[0.18em] text-primary">{{ t('auth.login.eyebrow') }}</p>
-          <h1 class="text-xl font-semibold text-highlighted">{{ t('auth.login.title') }}</h1>
-          <p class="text-sm text-muted">{{ t('auth.login.description') }}</p>
-        </div>
-      </template>
-      <form class="space-y-4" @submit.prevent="submit">
-        <UFormField :label="t('auth.login.username')">
-          <UInput v-model="username" autocomplete="username" autofocus class="w-full" />
-        </UFormField>
-        <UFormField :label="t('auth.login.password')">
-          <UInput v-model="password" type="password" autocomplete="current-password" class="w-full" />
-        </UFormField>
-        <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-        <UButton type="submit" block :loading="submitting">{{ t('auth.login.submit') }}</UButton>
-      </form>
-    </UCard>
+  <main class="grid min-h-[calc(100vh-3.5rem)] place-items-center px-4 py-10">
+    <form class="w-full max-w-sm space-y-5 border border-[var(--app-border)] bg-[var(--app-surface)] p-5 sm:p-6" @submit.prevent="submit">
+      <div><p class="section-kicker">{{ t('auth.login.eyebrow') }}</p><h1 class="text-xl font-semibold">{{ t('auth.login.title') }}</h1></div>
+      <div class="space-y-1"><Label for="username">{{ t('auth.login.username') }}</Label><Input id="username" v-model="username" autocomplete="username" autofocus /></div>
+      <div class="space-y-1"><Label for="password">{{ t('auth.login.password') }}</Label><Input id="password" v-model="password" type="password" autocomplete="current-password" /></div>
+      <Alert v-if="error" variant="destructive">{{ error }}</Alert>
+      <Button type="submit" :loading="submitting" class="w-full">{{ t('auth.login.submit') }}</Button>
+    </form>
   </main>
 </template>

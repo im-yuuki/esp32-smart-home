@@ -1,0 +1,67 @@
+- generic [ref=e3]:
+  - link "Browse facilities" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - link "Dashboard" [ref=e9] [cursor=pointer]:
+            - /url: /
+          - button "Collapse navigation" [ref=e16]
+        - navigation "Browse facilities" [ref=e21]:
+          - link "Dashboard" [ref=e22] [cursor=pointer]:
+            - /url: /
+          - link "Audit logs" [ref=e29] [cursor=pointer]:
+            - /url: /logs
+          - link "Admin" [ref=e34] [cursor=pointer]:
+            - /url: /admin
+        - generic [ref=e37]:
+          - 'button "Realtime connection: Connecting..." [ref=e38]'
+          - 'button "Language: English" [ref=e40]'
+          - button "Toggle theme" [ref=e43]
+          - button "Account menu" [ref=e48]:
+            - generic [ref=e49]: M
+    - generic [ref=e50]:
+      - complementary [ref=e52]:
+        - textbox "Search name, node ID, type or tag" [ref=e54]
+        - navigation "Browse facilities" [ref=e55]:
+          - paragraph [ref=e56]: Facilities
+          - list "Folder tree" [ref=e57]:
+            - listitem [ref=e58]:
+              - generic [ref=e59]:
+                - button [expanded] [ref=e60]
+                - link "Khu nhà thông minh" [ref=e63] [cursor=pointer]:
+                  - /url: /browse/site
+              - list [ref=e69]:
+                - listitem [ref=e70]:
+                  - generic [ref=e71]:
+                    - button [expanded] [ref=e72]
+                    - link "Tòa nhà A" [ref=e75] [cursor=pointer]:
+                      - /url: /browse/building-a
+                  - list [ref=e82]:
+                    - listitem [ref=e83]:
+                      - generic [ref=e84]:
+                        - button [expanded] [ref=e85]
+                        - link "Tầng trệt" [ref=e88] [cursor=pointer]:
+                          - /url: /browse/floor-1
+                      - list [ref=e95]:
+                        - listitem [ref=e96]:
+                          - link "Hành lang phía Đông" [ref=e99] [cursor=pointer]:
+                            - /url: /browse/corridor-1
+                        - listitem [ref=e106]:
+                          - link "Phòng khách" [ref=e109] [cursor=pointer]:
+                            - /url: /browse/room-living
+                        - listitem [ref=e115]:
+                          - link "Phòng ngủ" [ref=e118] [cursor=pointer]:
+                            - /url: /browse/room-bedroom
+      - generic [ref=e122]:
+        - main [ref=e123]
+        - region "System activity" [ref=e124]:
+          - button [ref=e125]:
+            - generic [ref=e126]: Activity
+            - generic [ref=e128]:
+              - time [ref=e129]: 01:46:11 AM
+              - strong [ref=e130]: RELAY_COMMAND_SKIPPED
+              - text: · operator · FOLDER
+  - region "Notifications alt+T":
+    - list

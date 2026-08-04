@@ -5,6 +5,8 @@ import AdminFoldersPanel from '@/components/admin/AdminFoldersPanel.vue'
 import AdminNodesPanel from '@/components/admin/AdminNodesPanel.vue'
 import AdminAccessPanel from '@/components/admin/AdminAccessPanel.vue'
 import { useFacilitiesStore } from '@/stores/facilities'
+import Skeleton from '@/components/ui/Skeleton.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 type Tab = 'folders' | 'nodes' | 'access'
 const tab = ref<Tab>('folders')
@@ -16,12 +18,14 @@ onMounted(async () => { await facilities.load(); selectedFolderId.value = facili
 
 <template>
   <div class="mx-auto max-w-[1500px] space-y-5 p-4 sm:p-6">
-    <header><p class="section-kicker">{{ t('admin.eyebrow') }}</p><h1 class="text-3xl font-semibold tracking-tight">{{ t('admin.title') }}</h1><p class="mt-1 max-w-2xl text-sm text-muted">{{ t('admin.description') }}</p></header>
-    <nav class="flex gap-1 overflow-x-auto border-b border-default" :aria-label="t('admin.title')"><button v-for="item in (['folders', 'nodes', 'access'] as Tab[])" :key="item" type="button" class="admin-tab" :class="{ active: tab === item }" @click="tab = item"><UIcon :name="item === 'folders' ? 'i-lucide-folder-tree' : item === 'nodes' ? 'i-lucide-cpu' : 'i-lucide-key-round'" />{{ t(`admin.tabs.${item}`) }}</button></nav>
-    <USkeleton v-if="facilities.loading && !facilities.loaded" class="h-96 w-full" />
-    <UAlert v-else-if="facilities.error" color="error" variant="subtle" :description="facilities.error" />
-    <AdminFoldersPanel v-else-if="tab === 'folders'" v-model="selectedFolderId" />
-    <AdminNodesPanel v-else-if="tab === 'nodes'" />
-    <AdminAccessPanel v-else />
+    <header class="flex items-center justify-between gap-3 border-b border-[var(--app-border)] pb-4"><div><p class="section-kicker">{{ t('admin.eyebrow') }}</p><h1 class="text-2xl font-semibold tracking-tight">{{ t('admin.title') }}</h1></div></header>
+    <Skeleton v-if="facilities.loading && !facilities.loaded" class="h-96 w-full" />
+    <Alert v-else-if="facilities.error" variant="destructive">{{ facilities.error }}</Alert>
+    <div v-else class="space-y-5">
+      <nav class="flex gap-1 overflow-x-auto border-b border-border" role="tablist" :aria-label="t('admin.title')"><button v-for="item in (['folders', 'nodes', 'access'] as Tab[])" :key="item" type="button" role="tab" :aria-selected="tab === item" class="border-b-2 border-transparent px-3 py-2 text-xs font-medium text-muted-foreground" :class="tab === item ? 'border-foreground text-foreground' : ''" @click="tab = item">{{ t(`admin.tabs.${item}`) }}</button></nav>
+      <AdminFoldersPanel v-if="tab === 'folders'" v-model="selectedFolderId" />
+      <AdminNodesPanel v-else-if="tab === 'nodes'" />
+      <AdminAccessPanel v-else />
+    </div>
   </div>
 </template>

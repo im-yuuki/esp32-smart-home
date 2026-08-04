@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { use } from 'echarts/core'
 import { LineChart } from 'echarts/charts'
@@ -14,6 +14,7 @@ use([LineChart, GridComponent, TooltipComponent, DataZoomComponent, CanvasRender
 
 const props = defineProps<{ samples: SensorSample[] }>()
 const { locale, t } = useI18n()
+const latest = computed(() => props.samples[props.samples.length - 1])
 
 const el = ref<HTMLElement | null>(null)
 const { setOption } = useECharts(el)
@@ -85,5 +86,6 @@ watch(locale, () => {
 </script>
 
 <template>
-  <div ref="el" class="h-72 w-full" />
+  <div ref="el" class="h-72 w-full" role="img" :aria-label="t('node.sensorHistory')" />
+  <p v-if="latest" class="sr-only">{{ t('sensor.temperature') }} {{ latest.temperature }} °C, {{ t('sensor.humidity') }} {{ latest.humidity }}%</p>
 </template>

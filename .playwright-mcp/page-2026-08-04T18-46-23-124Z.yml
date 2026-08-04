@@ -1,0 +1,131 @@
+- generic:
+  - generic:
+    - generic:
+      - link:
+        - /url: "#main-content"
+        - text: Browse facilities
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - link:
+                - /url: /
+              - button
+            - navigation:
+              - link:
+                - /url: /
+              - link:
+                - /url: /logs
+              - link:
+                - /url: /admin
+            - generic:
+              - button
+              - button
+              - button
+              - button [expanded]:
+                - generic: M
+        - generic:
+          - generic:
+            - complementary:
+              - generic:
+                - textbox:
+                  - /placeholder: Search name, node ID, type or tag
+              - navigation:
+                - paragraph: Facilities
+                - list:
+                  - listitem:
+                    - generic:
+                      - button [expanded]
+                      - link:
+                        - /url: /browse/site
+                        - generic: Khu nhà thông minh
+                    - list:
+                      - listitem:
+                        - generic:
+                          - button [expanded]
+                          - link:
+                            - /url: /browse/building-a
+                            - generic: Tòa nhà A
+                        - list:
+                          - listitem:
+                            - generic:
+                              - button [expanded]
+                              - link:
+                                - /url: /browse/floor-1
+                                - generic: Tầng trệt
+                            - list:
+                              - listitem:
+                                - generic:
+                                  - link:
+                                    - /url: /browse/corridor-1
+                                    - generic: Hành lang phía Đông
+                              - listitem:
+                                - generic:
+                                  - link:
+                                    - /url: /browse/room-living
+                                    - generic: Phòng khách
+                              - listitem:
+                                - generic:
+                                  - link:
+                                    - /url: /browse/room-bedroom
+                                    - generic: Phòng ngủ
+          - generic:
+            - main:
+              - generic:
+                - generic:
+                  - generic:
+                    - navigation:
+                      - link:
+                        - /url: /browse/site
+                        - text: Khu nhà thông minh
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic: OUTDOOR
+                          - generic: site
+                        - heading [level=1]: Khu nhà thông minh
+                      - generic:
+                        - generic:
+                          - button: Bulk control
+                        - generic:
+                          - button:
+                            - generic: Map
+                          - button:
+                            - generic: List
+                    - generic:
+                      - generic:
+                        - term: Devices
+                        - definition: "0"
+                      - generic:
+                        - term: Online
+                        - definition: "0"
+                      - generic:
+                        - term: Relays
+                        - definition: "0"
+                      - generic:
+                        - term: Pending
+                        - definition: "0"
+                  - generic:
+                    - region:
+                      - generic:
+                        - generic: OUTDOOR
+                        - strong: Khu nhà thông minh
+                      - generic:
+                        - paragraph: No devices are assigned to this folder.
+            - region:
+              - button:
+                - generic: Activity
+                - generic:
+                  - time: 01:46:11 AM
+                  - strong: RELAY_COMMAND_SKIPPED
+                  - text: · operator · FOLDER
+      - region "Notifications alt+T":
+        - list
+  - menu "Account menu" [active] [ref=e133]:
+    - generic [ref=e134]:
+      - paragraph [ref=e135]: Mock Administrator
+      - paragraph [ref=e136]: "@admin"
+      - paragraph [ref=e137]: System administrator
+    - separator [ref=e138]
+    - menuitem "Change password" [ref=e139] [cursor=pointer]
+    - menuitem "Sign out" [ref=e144] [cursor=pointer]

@@ -4,6 +4,7 @@ import { NODE_CONTROL, type NodeInfo, type RelayState } from '@/types/api'
 import type { ServerEvent } from '@/types/events'
 import { listNodes, sendRelayCommand as postRelayCommand } from '@/api/nodes'
 import { localizedError } from '@/i18n/errors'
+import { useNotifications } from '@/composables/useNotifications'
 import { i18n } from '@/i18n'
 import { useRealtimeStore } from './realtime'
 
@@ -52,11 +53,7 @@ export const useNodesStore = defineStore('nodes', () => {
 
   const realtime = useRealtimeStore()
 
-  // Nuxt UI toast — auto-imported by the @nuxt/ui vite plugin. Safe outside
-  // component setup in standalone Vue mode: toast state is module-scoped
-  // (useState stub), and this store is first instantiated from App.vue setup.
-  // (Fallback if this ever breaks: a tiny mitt-style toastBus consumed in App.vue.)
-  const toast = useToast()
+  const toast = useNotifications()
 
   // ------------------------------------------------------------------ getters
 
@@ -175,12 +172,7 @@ export const useNodesStore = defineStore('nodes', () => {
       }
       relay.pending = false
       relay.state = prevState
-      toast.add({
-        title: i18n.global.t('relay.commandFailed'),
-        description: localizedError(e),
-        color: 'error',
-        icon: 'i-lucide-circle-alert',
-      })
+      toast.error(i18n.global.t('relay.commandFailed'), localizedError(e))
     }
   }
 
@@ -195,12 +187,7 @@ export const useNodesStore = defineStore('nodes', () => {
       relay.state = entry.prevState
       relay.pending = false
     }
-    toast.add({
-      title: i18n.global.t('relay.notResponding'),
-      description: i18n.global.t('relay.timeout', { nodeId, channel, seconds: COMMAND_TIMEOUT_MS / 1000 }),
-      color: 'error',
-      icon: 'i-lucide-wifi-off',
-    })
+    toast.error(i18n.global.t('relay.notResponding'), i18n.global.t('relay.timeout', { nodeId, channel, seconds: COMMAND_TIMEOUT_MS / 1000 }))
   }
 
   /** PENDING -> IDLE early abort (node went offline while a command was in flight). */
@@ -215,12 +202,7 @@ export const useNodesStore = defineStore('nodes', () => {
         relay.state = entry.prevState
         relay.pending = false
       }
-      toast.add({
-        title: i18n.global.t('relay.notResponding'),
-        description: i18n.global.t('relay.offlineBeforeConfirmation', { nodeId, channel: parsed.channel }),
-        color: 'error',
-        icon: 'i-lucide-wifi-off',
-      })
+      toast.error(i18n.global.t('relay.notResponding'), i18n.global.t('relay.offlineBeforeConfirmation', { nodeId, channel: parsed.channel }))
     }
   }
 

@@ -3,6 +3,7 @@ export default {
     current: 'Ngôn ngữ: Tiếng Việt',
     switchTo: 'Chuyển sang tiếng Anh',
   },
+  theme: { switch: 'Đổi giao diện' },
   common: {
     dashboard: 'Bảng điều khiển',
     retry: 'Thử lại',
@@ -14,8 +15,9 @@ export default {
     admin: 'Quản trị',
     signOut: 'Đăng xuất',
   },
+  account: { menu: 'Menu tài khoản', changePassword: 'Đổi mật khẩu', signOut: 'Đăng xuất', systemAdmin: 'Quản trị hệ thống', auditAccess: 'Có quyền kiểm toán', standardAccess: 'Quyền tiêu chuẩn' },
   navigation: { open: 'Mở điều hướng', collapse: 'Thu gọn điều hướng', browse: 'Duyệt cơ sở', search: 'Tìm tên, node ID, loại hoặc thẻ', facilities: 'Cấu trúc cơ sở', devices: 'Thiết bị phù hợp', logs: 'Nhật ký kiểm toán' },
-  browse: { facility: 'Khu vực', loading: 'Đang tải khu vực', loadFailed: 'Không thể tải khu vực', map: 'Bản đồ', list: 'Danh sách', mapLabel: 'Bản đồ {folder}', deviceCount: '{count} thiết bị trong khu vực', noDevices: 'Chưa có thiết bị được gán vào khu vực này.', emptyTitle: 'Khu vực đã sẵn sàng nhận thiết bị', toggleDevice: 'Chuyển trạng thái {name}', pending: 'Đang chờ' },
+  browse: { facility: 'Khu vực', devices: 'Thiết bị', loading: 'Đang tải khu vực', loadFailed: 'Không thể tải khu vực', map: 'Bản đồ', list: 'Danh sách', mapLabel: 'Bản đồ {folder}', deviceCount: '{count} thiết bị trong khu vực', noDevices: 'Chưa có thiết bị được gán vào khu vực này.', emptyTitle: 'Khu vực đã sẵn sàng nhận thiết bị', toggleDevice: 'Chuyển trạng thái {name}', pending: 'Đang chờ' },
   bulk: { title: 'Điều khiển hàng loạt', descendants: 'Bao gồm các thư mục con', deviceTypes: 'Loại thiết bị', tags: 'Thẻ', targetState: 'Trạng thái đích', preview: 'Xem trước', confirm: 'Xác nhận thao tác', eligible: 'Có thể gửi', offline: 'Ngoại tuyến', skippedLabel: 'Bỏ qua', total: 'Phù hợp', queued: 'Đã gửi {count} lệnh.', skipped: 'Bỏ qua {count} mục.', failed: '{count} mục thất bại.', batch: 'Lô' },
   logs: { eyebrow: 'Dấu vết vận hành', title: 'Nhật ký kiểm toán', from: 'Từ thời điểm', to: 'Đến thời điểm', folder: 'Thư mục', allFolders: 'Tất cả thư mục', includeDescendants: 'Bao gồm các thư mục con', action: 'Hành động', actor: 'Người thực hiện', node: 'Node ID', filter: 'Lọc dữ liệu', time: 'Thời gian', target: 'Đối tượng', trace: 'Lô / tương quan', result: 'Kết quả', batch: 'Lô', empty: 'Không có sự kiện phù hợp bộ lọc.', total: '{count} sự kiện' },
   activity: { eyebrow: 'Dấu vết vận hành', title: 'Hoạt động hệ thống', label: 'Hoạt động', refresh: 'Làm mới hoạt động', collapse: 'Thu gọn bảng hoạt động', loading: 'Đang tải hoạt động...' },

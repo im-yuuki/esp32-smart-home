@@ -5,6 +5,10 @@ import * as api from '@/api/admin'
 import { useFacilitiesStore } from '@/stores/facilities'
 import { localizedError } from '@/i18n/errors'
 import type { FolderMutation, FolderTemplate } from '@/types/facility'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Alert from '@/components/ui/Alert.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const facilities = useFacilitiesStore()
 const { t } = useI18n()
@@ -17,6 +21,8 @@ const templateConfig = ref<Record<string, unknown>>({})
 const sortOrder = ref(0)
 const busy = ref(false)
 const error = ref<string | null>(null)
+const confirmOpen = ref(false)
+const pendingDelete = ref<string | null>(null)
 const templates: FolderTemplate[] = ['OUTDOOR', 'BUILDING', 'FLOOR', 'CORRIDOR', 'ROOM']
 const icons = [
   'i-lucide-folder', 'i-lucide-map-pin', 'i-lucide-trees', 'i-lucide-building-2',
@@ -64,10 +70,16 @@ function save() {
 }
 
 function remove() {
-  if (!selectedId.value || !confirm(t('admin.folders.confirmDelete'))) return
-  const id = selectedId.value
-  selectedId.value = null
-  void run(() => api.deleteFolder(id))
+  if (!selectedId.value) return
+  pendingDelete.value = selectedId.value
+  confirmOpen.value = true
+}
+
+function acceptRemove() {
+  const id = pendingDelete.value
+  confirmOpen.value = false
+  pendingDelete.value = null
+  if (id) { selectedId.value = null; void run(() => api.deleteFolder(id)) }
 }
 </script>
 
@@ -76,41 +88,42 @@ function remove() {
     <div class="admin-list">
       <div class="flex items-center justify-between px-3 py-2">
         <h2 class="font-semibold">{{ t('admin.folders.structure') }}</h2>
-        <UButton size="xs" icon="i-lucide-plus" @click="selectedId = null">{{ t('common.new') }}</UButton>
+        <Button size="icon" variant="ghost" @click="selectedId = null"><AppIcon name="i-lucide-plus" /></Button>
       </div>
       <button v-for="folder in facilities.folders" :key="folder.id" type="button" class="admin-list-row" :class="{ active: selectedId === folder.id }" @click="selectedId = folder.id">
-        <UIcon :name="folder.icon || 'i-lucide-folder'" />
+        <AppIcon :name="folder.icon || 'i-lucide-folder'" />
         <span class="min-w-0 flex-1 truncate text-left">{{ folder.name }}</span>
-        <span class="text-[10px] text-muted">{{ folder.templateType }}</span>
+        <span class="text-[10px] text-[var(--app-text-muted)]">{{ folder.templateType }}</span>
       </button>
     </div>
     <form class="space-y-5 p-4 sm:p-6" @submit.prevent="save">
       <div>
         <p class="section-kicker">{{ selectedId ? t('admin.folders.edit') : t('admin.folders.create') }}</p>
-        <h2 class="flex items-center gap-2 text-xl font-semibold"><UIcon :name="icon" class="size-5 text-primary" />{{ name || t('admin.folders.untitled') }}</h2>
+        <h2 class="flex items-center gap-2 text-xl font-semibold"><AppIcon :name="icon" class="size-5 text-[var(--app-accent)]" />{{ name || t('admin.folders.untitled') }}</h2>
       </div>
-      <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-      <UFormField :label="t('admin.folders.name')"><UInput v-model="name" class="w-full" required /></UFormField>
+      <Alert v-if="error" variant="destructive">{{ error }}</Alert>
+      <div class="space-y-1"><label for="folder-name" class="field-label">{{ t('admin.folders.name') }}</label><Input id="folder-name" v-model="name" required /></div>
       <div class="grid gap-4 sm:grid-cols-2">
-        <UFormField :label="t('admin.folders.parent')">
-          <select v-model="parentId" class="form-control w-full"><option :value="null">{{ t('admin.folders.root') }}</option><option v-for="folder in facilities.folders.filter(item => item.id !== selectedId)" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select>
-        </UFormField>
-        <UFormField :label="t('admin.folders.sortOrder')"><UInput v-model.number="sortOrder" type="number" class="w-full" /></UFormField>
+        <div class="space-y-1"><label class="field-label">{{ t('admin.folders.parent') }}</label><select v-model="parentId" class="form-control"><option :value="null">{{ t('admin.folders.root') }}</option><option v-for="folder in facilities.folders.filter(item => item.id !== selectedId)" :key="folder.id" :value="folder.id">{{ folder.name }}</option></select></div>
+        <div class="space-y-1"><label class="field-label">{{ t('admin.folders.sortOrder') }}</label><Input v-model.number="sortOrder" type="number" /></div>
       </div>
-      <UFormField :label="t('admin.folders.icon')" :description="t('admin.folders.iconDescription')">
+      <div>
+        <label class="field-label">{{ t('admin.folders.icon') }}</label>
         <div class="grid grid-cols-6 gap-2 sm:grid-cols-12">
-          <button v-for="option in icons" :key="option" type="button" class="icon-option" :class="{ active: icon === option }" :aria-label="option.replace('i-lucide-', '')" :title="option.replace('i-lucide-', '')" @click="icon = option"><UIcon :name="option" class="size-5" /></button>
+          <button v-for="option in icons" :key="option" type="button" class="icon-option" :class="{ active: icon === option }" :aria-label="option.replace('i-lucide-', '')" :title="option.replace('i-lucide-', '')" @click="icon = option"><AppIcon :name="option" class="size-5" /></button>
         </div>
-      </UFormField>
-      <UFormField :label="t('admin.folders.template')" :description="t('admin.folders.templateDescription')">
+      </div>
+      <div>
+        <label class="field-label">{{ t('admin.folders.template') }}</label>
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          <button v-for="template in templates" :key="template" type="button" class="template-option" :class="{ active: templateType === template }" @click="templateType = template"><UIcon :name="templateIcons[template]" /><span>{{ template }}</span></button>
+          <button v-for="template in templates" :key="template" type="button" class="template-option" :class="{ active: templateType === template }" @click="templateType = template"><AppIcon :name="templateIcons[template]" /><span>{{ template }}</span></button>
         </div>
-      </UFormField>
+      </div>
       <div class="flex justify-between gap-2">
-        <UButton v-if="selectedId" type="button" color="error" variant="ghost" @click="remove">{{ t('common.delete') }}</UButton>
-        <UButton type="submit" :loading="busy" class="ml-auto">{{ t('common.save') }}</UButton>
+        <Button v-if="selectedId" type="button" variant="destructive" @click="remove">{{ t('common.delete') }}</Button>
+        <Button type="submit" :loading="busy" class="ml-auto">{{ t('common.save') }}</Button>
       </div>
     </form>
+    <div v-if="confirmOpen" class="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="dialog" aria-modal="true" :aria-label="t('common.delete')"><div class="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-2xl"><h2 class="font-semibold">{{ t('common.delete') }}</h2><p class="mt-2 text-sm text-muted-foreground">{{ t('admin.folders.confirmDelete') }}</p><div class="mt-5 flex justify-end gap-2"><Button variant="ghost" @click="confirmOpen = false">{{ t('common.close') }}</Button><Button variant="destructive" @click="acceptRemove">{{ t('common.delete') }}</Button></div></div></div>
   </section>
 </template>

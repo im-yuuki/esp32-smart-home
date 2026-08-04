@@ -11,7 +11,7 @@ const router = createRouter({
     { path: '/change-password', name: 'change-password', component: () => import('@/views/ChangePasswordView.vue'), meta: { requiresAuth: true } },
     { path: '/', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
     { path: '/browse/:folderId', name: 'browse', component: () => import('@/views/FolderView.vue'), meta: { requiresAuth: true } },
-    { path: '/logs', redirect: '/' },
+    { path: '/logs', name: 'logs', component: () => import('@/views/LogsView.vue'), meta: { requiresAuth: true, requiresAudit: true } },
     {
       path: '/nodes/:nodeId',
       name: 'node-detail',

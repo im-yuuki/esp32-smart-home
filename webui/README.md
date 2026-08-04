@@ -1,7 +1,7 @@
 # webui — Smart Home SPA (Phase 1)
 
 Vue 3 (Composition API, `<script setup lang="ts">`) + Vite + TypeScript + Pinia +
-vue-router + vue-i18n + **Nuxt UI v4** (standalone, Tailwind v4) + ECharts (modular).
+vue-router + vue-i18n + **shadcn-vue** source-owned components (Tailwind v4 + Reka UI) + ECharts (modular).
 REST via axios, cookie-session authentication, group-scoped RBAC, and realtime via
 STOMP/SockJS on `/ws` (subscribes `/user/queue/events`). All URLs are relative (`/api/...`, `/ws`) so the Vite dev
 proxy and the prod same-origin nginx both work unchanged.
@@ -16,11 +16,9 @@ proxy and the prod same-origin nginx both work unchanged.
 | `npm run type-check` | `vue-tsc --build` alone |
 | `npm run preview` | Serve the built `dist/` |
 
-Note: `build` runs the Vite build **before** the type-check because the
-`@nuxt/ui` Vite plugin generates `auto-imports.d.ts` / `components.d.ts`
-(gitignored) during dev/build — on a fresh tree the type-check needs them.
-Until the first `npm run dev`/`build`, the IDE will red-squiggle `UButton`,
-`useToast`, etc.
+UI primitives live under `src/components/ui/` and are owned by this repository.
+Use `components.json` when adding shadcn-vue components and keep generated code
+aligned with the monochrome tokens in `src/assets/main.css`.
 
 ## Mock mode (`VITE_MOCK=1`)
 
@@ -54,12 +52,11 @@ subscription, so stores/components behave identically in both modes.
   `src/api/*` / `src/utils/time.ts`; components never convert.
 - **Localization**: English and Vietnamese catalogs live in `src/i18n/locales/`.
   The initial language follows the browser, the header switcher persists the
-  choice under `smarthome.locale`, and the same locale is passed to Nuxt UI,
-  date, relative-time and number formatters.
+  choice under `smarthome.locale`; date, relative-time and number formatters use
+  the same locale.
 - **Facility explorer**: folder icons are separate from map templates. The tree opens
   by default and persists collapsed branches per account in local storage. Users with
-  `AUDIT_VIEW` access audit history from the expandable activity bar at the bottom of
-  the authenticated shell.
+  `AUDIT_VIEW` access audit history from `/logs` and the compact activity rail.
 - **Chart**: direct `echarts/core` modular imports via `useECharts`
   (init/ResizeObserver/dispose), time axis, dual y (°C / %), `lttb` sampling,
   `dataZoom: inside` for pinch zoom, live-appends `SENSOR_STATE` events.

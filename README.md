@@ -25,7 +25,7 @@ Nodes never talk to the web UI directly. The backend is the only server-side MQT
 |---|---|---|
 | `firmware/` | Node firmware | ESP-IDF v6.0.2, target `esp32s3` |
 | `server/` | Backend | Spring Boot 4.1, Java 25, Maven (built via Docker — no host JDK needed) |
-| `webui/` | Web UI | Vue 3 + Vite + TS + Pinia + Nuxt UI v4 + ECharts |
+| `webui/` | Web UI | Vue 3 + Vite + TS + Pinia + shadcn-vue + Tailwind v4 + ECharts |
 | Root deployment files | `compose.yml`, `.env.example`, nginx and Mosquitto configuration | Docker Compose |
 | `docs/design/` | Implementation-level design docs (authoritative detail) | |
 | `docs/adr/` | Architecture decision records | |

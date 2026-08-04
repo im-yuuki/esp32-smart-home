@@ -4,6 +4,10 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { localizedError } from '@/i18n/errors'
 import { useAuthStore } from '@/stores/auth'
+import Button from '@/components/ui/Button.vue'
+import Input from '@/components/ui/Input.vue'
+import Label from '@/components/ui/Label.vue'
+import Alert from '@/components/ui/Alert.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -33,19 +37,14 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-  <UContainer class="grid min-h-[calc(100vh-3.5rem)] place-items-center py-12">
-    <UCard class="w-full max-w-md">
-      <template #header>
-        <h1 class="text-xl font-semibold text-highlighted">{{ t('auth.password.title') }}</h1>
-        <p class="mt-1 text-sm text-muted">{{ t('auth.password.description') }}</p>
-      </template>
-      <form class="space-y-4" @submit.prevent="submit">
-        <UFormField :label="t('auth.password.current')"><UInput v-model="currentPassword" type="password" class="w-full" /></UFormField>
-        <UFormField :label="t('auth.password.new')" :hint="t('auth.password.hint')"><UInput v-model="newPassword" type="password" minlength="12" class="w-full" /></UFormField>
-        <UFormField :label="t('auth.password.confirm')"><UInput v-model="confirmPassword" type="password" minlength="12" class="w-full" /></UFormField>
-        <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-        <UButton type="submit" block :loading="submitting">{{ t('auth.password.submit') }}</UButton>
-      </form>
-    </UCard>
-  </UContainer>
+  <main class="grid min-h-[calc(100vh-3.5rem)] place-items-center px-4 py-10">
+    <form class="w-full max-w-md space-y-5 border border-[var(--app-border)] bg-[var(--app-surface)] p-5 sm:p-6" @submit.prevent="submit">
+      <h1 class="text-xl font-semibold">{{ t('auth.password.title') }}</h1>
+      <div class="space-y-1"><Label for="current-password">{{ t('auth.password.current') }}</Label><Input id="current-password" v-model="currentPassword" type="password" /></div>
+      <div class="space-y-1"><Label for="new-password">{{ t('auth.password.new') }}</Label><Input id="new-password" v-model="newPassword" type="password" minlength="12" /><small class="text-xs text-[var(--app-text-muted)]">{{ t('auth.password.hint') }}</small></div>
+      <div class="space-y-1"><Label for="confirm-password">{{ t('auth.password.confirm') }}</Label><Input id="confirm-password" v-model="confirmPassword" type="password" minlength="12" /></div>
+      <Alert v-if="error" variant="destructive">{{ error }}</Alert>
+      <Button type="submit" :loading="submitting" class="w-full">{{ t('auth.password.submit') }}</Button>
+    </form>
+  </main>
 </template>
